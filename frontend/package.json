@@ -1,0 +1,26 @@
+{
+  "name": "frontend",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "serve": "vue-cli-service serve",
+    "serve:integracao": "vue-cli-service serve --mode integracao",
+    "build": "vue-cli-service build"
+  },
+  "dependencies": {
+    "@fontsource/poppins": "^5.0.14",
+    "@popperjs/core": "^2.11.8",
+    "bootstrap": "^5.3.3",
+    "bootstrap-icons": "^1.11.3",
+    "core-js": "^3.8.3",
+    "jspdf": "^2.5.2",
+    "jspdf-autotable": "^3.8.4",
+    "vue": "^3.2.13",
+    "vue-router": "^4.0.3"
+  },
+  "devDependencies": {
+    "@vue/cli-plugin-babel": "~5.0.0",
+    "@vue/cli-plugin-router": "~5.0.0",
+    "@vue/cli-service": "~5.0.0"
+  }
+}
