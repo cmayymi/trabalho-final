@@ -17,7 +17,7 @@ class Usuario{
 
     validarSenha(senha){
         // verificar se a senha é uma string; caso contrario, a comparacao ira falhar
-        if (typeof senha != 'string') {
+        if (typeof senha !== 'string') {
             return false;
         }
 
