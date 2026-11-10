@@ -5,6 +5,9 @@
   <EstadoPagina v-else-if="erroCarga" tipo="erro" icone="bi-cloud-slash" titulo="Não foi possível abrir o formulário" :texto="erroCarga">
     <router-link class="btn btn-branco" :to="{ name: 'vendas' }">Voltar às vendas</router-link>
   </EstadoPagina>
+  <EstadoPagina v-else-if="editando && !vendasApi.podeEditar" icone="bi-tools" titulo="Edição ainda não disponível" texto="A edição de pedidos (RF10) ainda não foi implementada no servidor.">
+    <router-link class="btn btn-branco" :to="{ name: 'vendas' }">Voltar às vendas</router-link>
+  </EstadoPagina>
   <EstadoPagina v-else-if="!produtos.length" titulo="O catálogo está vazio" texto="Cadastre um produto antes de registrar uma venda.">
     <router-link class="btn btn-ambar" :to="{ name: 'produto-novo' }">+ Novo produto</router-link>
   </EstadoPagina>
@@ -72,8 +75,9 @@
     <div class="row g-3 align-items-end">
       <div class="col-6 col-lg-3">
         <label class="form-label" for="valor">Valor total</label>
-        <CampoMoeda id="valor" v-model="form.valorTotal" :class="{ 'is-invalid': erros.valorTotal }" @input="valorManual = true" />
+        <CampoMoeda id="valor" v-model="form.valorTotal" :class="{ 'is-invalid': erros.valorTotal }" :readonly="!vendasApi.valorManual" :aria-describedby="vendasApi.valorManual ? null : 'valor-ajuda'" @input="valorManual = true" />
         <div class="invalid-feedback">{{ erros.valorTotal }}</div>
+        <div v-if="!vendasApi.valorManual" id="valor-ajuda" class="form-text">Calculado pelo preço do catálogo.</div>
       </div>
       <div class="col-6 col-lg-3">
         <label class="form-label" for="status">Status do pagamento</label>
@@ -104,7 +108,7 @@
       <dt class="col-5">Pagamento</dt><dd class="col-7">{{ form.statusPagamento }}</dd>
       <dt class="col-5">Valor total</dt><dd class="col-7 fs-5 fw-bold">{{ moeda(form.valorTotal) }}</dd>
     </dl>
-    <p class="texto-suave small mt-2 mb-0">Ao confirmar, os ingredientes da ficha técnica serão baixados do estoque.</p>
+    <p v-if="vendasApi.baixaEstoque" class="texto-suave small mt-2 mb-0">Ao confirmar, os ingredientes da ficha técnica serão baixados do estoque.</p>
   </ModalConfirmacao>
 </template>
 

@@ -21,7 +21,7 @@
       </dl>
 
       <div class="d-flex flex-wrap gap-3">
-        <router-link class="btn btn-ambar" :to="{ name: 'venda-editar', params: { id: venda.id } }">Editar pedido</router-link>
+        <router-link v-if="vendasApi.podeEditar" class="btn btn-ambar" :to="{ name: 'venda-editar', params: { id: venda.id } }">Editar pedido</router-link>
         <router-link class="btn btn-branco" :to="{ name: 'vendas' }">Voltar</router-link>
       </div>
     </section>

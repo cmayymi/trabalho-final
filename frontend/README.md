@@ -42,7 +42,9 @@ Com o backend ligado na porta 3000:
 npm run serve:integracao
 ```
 
-O login passa a usar `POST /api/login`. Os demais módulos seguem com dados de teste até suas rotas existirem.
+O login passa a usar `POST /api/login` e o registro de vendas usa `/api/pedidos`, gravando no banco SQLite. Catálogo e relatório seguem com dados de teste.
+
+Para a venda funcionar, a tabela `produtos` do banco precisa ter os produtos do catálogo de teste, com os mesmos IDs. O comando está em [docs/CONTRATO-API.md](docs/CONTRATO-API.md).
 
 ### Versão final
 

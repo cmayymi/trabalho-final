@@ -52,14 +52,16 @@
               <div class="d-flex align-items-center gap-2">
                 <router-link class="acao" :to="{ name: 'venda-detalhe', params: { id: venda.id } }">Ver</router-link>
                 <span aria-hidden="true">•</span>
-                <router-link class="acao" :to="{ name: 'venda-editar', params: { id: venda.id } }">Editar</router-link>
-                <span aria-hidden="true">•</span>
+                <template v-if="vendasApi.podeEditar">
+                  <router-link class="acao" :to="{ name: 'venda-editar', params: { id: venda.id } }">Editar</router-link>
+                  <span aria-hidden="true">•</span>
+                </template>
                 <div class="dropdown">
                   <button class="acao" type="button" data-bs-toggle="dropdown" data-bs-popper-config='{"strategy":"fixed"}' aria-expanded="false" :aria-label="`Mais ações do pedido ${venda.id}`">
                     <i class="bi bi-three-dots" aria-hidden="true"></i>
                   </button>
                   <ul class="dropdown-menu dropdown-menu-end">
-                    <li>
+                    <li v-if="vendasApi.podeEditar">
                       <button class="dropdown-item" type="button" @click="alternarPagamento(venda)">
                         Marcar como {{ venda.statusPagamento === 'Pago' ? 'pendente' : 'pago' }}
                       </button>
