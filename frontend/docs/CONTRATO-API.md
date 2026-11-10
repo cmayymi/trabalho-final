@@ -117,7 +117,7 @@ Resposta (o `valor_total` é calculado pelo servidor a partir de `preco_base`):
 
 ### Para a venda funcionar com o banco
 
-Os produtos da tela de venda ainda vêm do catálogo de teste do frontend. Por isso a tabela `produtos` precisa ter os mesmos IDs e preços:
+Os produtos da tela de venda ainda vêm do catálogo de teste do frontend. Por isso a tabela `produtos` precisa ter os mesmos IDs e preços. O script `backend/database/seed-produtos.js` faz isso (`node database/seed-produtos.js`, dentro de `backend`); o SQL equivalente é:
 
 ```sql
 INSERT OR IGNORE INTO produtos (produtoID, nome, preco_base) VALUES
