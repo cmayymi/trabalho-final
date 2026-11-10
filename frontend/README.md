@@ -44,7 +44,11 @@ npm run serve:integracao
 
 O login passa a usar `POST /api/login` e o registro de vendas usa `/api/pedidos`, gravando no banco SQLite. Catálogo e relatório seguem com dados de teste.
 
-Para a venda funcionar, a tabela `produtos` do banco precisa ter os produtos do catálogo de teste, com os mesmos IDs. O comando está em [docs/CONTRATO-API.md](docs/CONTRATO-API.md).
+Para a venda funcionar, a tabela `produtos` do banco precisa ter os produtos do catálogo de teste, com os mesmos IDs. Dentro da pasta `backend`, rode uma vez:
+
+```bash
+node database/seed-produtos.js
+```
 
 ### Versão final
 
