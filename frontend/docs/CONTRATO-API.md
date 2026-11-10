@@ -74,41 +74,66 @@ Campos editáveis: `nome`, `categoria`, `massa`, `cobertura`, `descricao`, `peso
 
 `unidade`: `kg`, `l` ou `un`. `status`: `OK` ou `CRITICO`.
 
-## Vendas
+## Vendas (já existe no backend: `/api/pedidos`)
 
-### Venda
-
-```json
-{
-  "id": 1042,
-  "cliente": "Maria Silva",
-  "whatsapp": "(45) 99999-0000",
-  "dataPedido": "2026-09-09",
-  "produtoId": 1,
-  "produto": "Bolo de chocolate",
-  "quantidade": 1,
-  "peso": 1.5,
-  "dataEntrega": "2026-09-12",
-  "descricao": "Cobertura brigadeiro",
-  "valorTotal": 120,
-  "statusPagamento": "Pendente"
-}
-```
-
-`statusPagamento`: `Pendente` ou `Pago`.
+Implementado pela Carol na branch `rf02-rf10-schema-pedidos`. O frontend converte os nomes em `src/services/vendas.js`: valores em centavos, peso em gramas e status em minúsculas.
 
 | Rota | Corpo | Resposta |
 | --- | --- | --- |
-| `GET /api/vendas` | | Lista de vendas, do pedido mais novo ao mais antigo |
-| `GET /api/vendas/:id` | | Venda |
-| `POST /api/vendas` | Venda sem `id` e `produto` | `201` + venda + `alertasEstoque` |
-| `PUT /api/vendas/:id` | Venda sem `id` e `produto` | Venda + `alertasEstoque` |
+| `GET /api/pedidos` | | Lista de pedidos ativos, do mais recente ao mais antigo |
+| `GET /api/pedidos/:id` | | Pedido com seus itens; `404` se não existir |
+| `POST /api/pedidos` | Pedido sem `pedidosID` | `201` + pedido salvo |
 
-- A gravação e a baixa de estoque devem ocorrer em uma única transação (UC02 passo 9a, UC04).
-- Estoque insuficiente: `409`, sem gravar nada.
-- Produto sem ficha técnica: `422`, sem gravar nada.
-- `alertasEstoque`: lista de textos dos insumos que ficaram no mínimo ou abaixo, por exemplo `["Chocolate: saldo atual 2 kg"]`. Pode ser vazia.
-- Sem troca de produto ou quantidade, o `PUT` não deve alterar o estoque.
+Corpo do `POST`, como o frontend envia:
+
+```json
+{
+  "data_pedido": "2026-11-10",
+  "cliente_nome": "Maria Silva",
+  "cliente_contato": "(45) 99999-0000",
+  "descricao": "Cobertura brigadeiro",
+  "data_entrega": "2026-11-20",
+  "status_pagamento": "pendente",
+  "itens": [{ "produtoID": 1, "quantidade": 1, "peso": 1500 }]
+}
+```
+
+Resposta (o `valor_total` é calculado pelo servidor a partir de `preco_base`):
+
+```json
+{
+  "pedidosID": 1,
+  "data_pedido": "2026-11-10",
+  "cliente_nome": "Maria Silva",
+  "cliente_contato": "(45) 99999-0000",
+  "descricao": "Cobertura brigadeiro",
+  "data_entrega": "2026-11-20",
+  "status_pagamento": "pendente",
+  "valor_total": 12000,
+  "situacao": "ativo",
+  "itens": [{ "produtoID": 1, "quantidade": 1, "peso": 1500, "preco_unitario": 12000, "custo_unitario": 0, "produto_nome": "Bolo de chocolate" }]
+}
+```
+
+### Para a venda funcionar com o banco
+
+Os produtos da tela de venda ainda vêm do catálogo de teste do frontend. Por isso a tabela `produtos` precisa ter os mesmos IDs e preços:
+
+```sql
+INSERT OR IGNORE INTO produtos (produtoID, nome, preco_base) VALUES
+  (1, 'Bolo de chocolate', 12000),
+  (2, 'Bolo de frutas', 9500),
+  (3, 'Torta de morango', 11000),
+  (4, 'Bolo de cenoura', 8500),
+  (5, 'Torta de limão', 9800),
+  (6, 'Brigadeiro gourmet (cento)', 18000);
+```
+
+Ainda não existe no backend, e por isso o frontend esconde ou avisa:
+
+- Edição de pedidos e troca do status de pagamento (RF10, `PUT`).
+- Baixa automática de estoque (UC04).
+- Exigência de token nas rotas `/api/pedidos` (o RF05 pede login para qualquer funcionalidade).
 
 ## Relatório de vendas
 
