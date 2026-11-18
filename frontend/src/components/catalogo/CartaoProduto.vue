@@ -12,7 +12,7 @@
       <EtiquetaStatus :status="produto.disponibilidade" />
 
       <div class="d-flex align-items-center gap-3 mt-3">
-        <router-link class="acao" :to="{ name: 'produto-detalhe', params: { id: produto.id } }">Ver detalhes</router-link>
+        <button class="acao" type="button" @click="$emit('selecionar', produto.id)">Ver detalhes</button>
         <router-link class="acao" :to="{ name: 'produto-editar', params: { id: produto.id } }">Editar</router-link>
         <div class="dropdown">
           <button class="acao" type="button" data-bs-toggle="dropdown" aria-expanded="false" :aria-label="`Mais ações para ${produto.nome}`">
@@ -35,7 +35,7 @@ import EtiquetaStatus from '@/components/comum/EtiquetaStatus.vue'
 import { moedaCurta } from '@/utils/formatadores'
 
 defineProps({ produto: { type: Object, required: true } })
-defineEmits(['excluir'])
+defineEmits(['selecionar', 'excluir'])
 </script>
 
 <style scoped>

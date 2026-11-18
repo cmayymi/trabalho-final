@@ -4,7 +4,7 @@
   <section class="row g-3 align-items-end mb-4" aria-label="Filtros do catálogo">
     <div class="col-12 col-xl">
       <label class="form-label" for="busca-produto">Buscar</label>
-      <input id="busca-produto" v-model="filtros.busca" type="search" class="form-control" placeholder="Buscar por nome" />
+      <input id="busca-produto" :value="busca" type="search" class="form-control" placeholder="Buscar por nome" @input="buscarPorNome($event.target.value)" />
     </div>
     <div v-for="filtro in listaFiltros" :key="filtro.chave" class="col-6 col-md-4 col-xl-auto filtro">
       <select v-model="filtros[filtro.chave]" class="form-select filtro-forte" :aria-label="filtro.rotulo">
@@ -33,7 +33,7 @@
 
   <section v-else class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-4" aria-label="Produtos">
     <div v-for="produto in filtrados" :key="produto.id" class="col">
-      <CartaoProduto :produto="produto" @excluir="pedirExclusao" />
+      <CartaoProduto :produto="produto" @selecionar="selecionarProduto" @excluir="pedirExclusao" />
     </div>
   </section>
 
@@ -45,6 +45,7 @@
 
 <script setup>
 import { computed, onMounted, reactive, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import CabecalhoPagina from '@/components/layout/CabecalhoPagina.vue'
 import EstadoPagina from '@/components/comum/EstadoPagina.vue'
 import ModalConfirmacao from '@/components/comum/ModalConfirmacao.vue'
@@ -53,15 +54,20 @@ import catalogo from '@/services/catalogo'
 import { avisar } from '@/composables/avisos'
 import { normalizar } from '@/utils/formatadores'
 
+// <<boundary>> TelaCatalogo (UC9 - Consultar Catálogo)
+const router = useRouter()
+
 const produtos = ref([])
-const carregando = ref(true)
+const busca = ref('')
 const erro = ref('')
-const filtros = reactive({ busca: '', categoria: '', massa: '', cobertura: '' })
+const carregando = ref(true)
+const filtros = reactive({ categoria: '', massa: '', cobertura: '' })
 
 const modal = ref(null)
 const selecionado = ref(null)
 const excluindo = ref(false)
 
+// Passos 1 a 3: recupera os produtos cadastrados e apresenta a lista.
 async function carregar() {
   carregando.value = true
   erro.value = ''
@@ -86,17 +92,28 @@ const listaFiltros = computed(() => [
 ])
 
 const filtrados = computed(() => {
-  const busca = normalizar(filtros.busca)
+  const texto = normalizar(busca.value)
   return produtos.value.filter((p) =>
-    normalizar(p.nome).includes(busca) &&
+    normalizar(p.nome).includes(texto) &&
     (!filtros.categoria || p.categoria === filtros.categoria) &&
     (!filtros.massa || p.massa === filtros.massa) &&
     (!filtros.cobertura || p.cobertura === filtros.cobertura)
   )
 })
 
+// Extensão 3a (Aplicar Filtros): restringe a lista pelo nome do produto.
+function buscarPorNome(texto) {
+  busca.value = texto
+}
+
+// Passo 4: abre os detalhes do produto escolhido.
+function selecionarProduto(id) {
+  router.push({ name: 'produto-detalhe', params: { id } })
+}
+
 function limparFiltros() {
-  Object.assign(filtros, { busca: '', categoria: '', massa: '', cobertura: '' })
+  busca.value = ''
+  Object.assign(filtros, { categoria: '', massa: '', cobertura: '' })
 }
 
 function pedirExclusao(produto) {
