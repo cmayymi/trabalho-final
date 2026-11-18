@@ -87,11 +87,16 @@ async function entrarNoSistema() {
     await entrar(login.value, senha.value)
     await router.replace(destinoSeguro())
   } catch (falha) {
-    erro.value = falha.message
-    senha.value = ''
+    exibirErro(falha.message)
   } finally {
     enviando.value = false
   }
+}
+
+// Extensões 3a e 3b do UC6: credenciais inválidas ou servidor indisponível.
+function exibirErro(mensagem) {
+  erro.value = mensagem
+  senha.value = ''
 }
 
 function esqueciSenha() {

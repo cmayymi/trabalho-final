@@ -37,6 +37,10 @@
     </section>
 
     <h2 class="titulo-secao">Ficha técnica</h2>
+    <p class="fw-semibold" :class="ingredientesDisp ? 'texto-ok' : 'texto-falta'" role="status">
+      <i class="bi" :class="ingredientesDisp ? 'bi-check-circle' : 'bi-x-circle'" aria-hidden="true"></i>
+      {{ ingredientesDisp ? 'Ingredientes disponíveis para produção' : 'Faltam ingredientes para produzir este produto' }}
+    </p>
     <div class="row g-4">
       <div class="col-12 col-xl-9">
         <div class="table-responsive">
@@ -76,23 +80,31 @@ import catalogo from '@/services/catalogo'
 import { avisar } from '@/composables/avisos'
 import { moeda, numeroBR } from '@/utils/formatadores'
 
+// <<boundary>> TelaDetalheProduto (UC9 - Consultar Catálogo, passo 4)
 const rota = useRoute()
 const router = useRouter()
 const produto = ref(null)
-const carregando = ref(true)
+const ingredientesDisp = ref(false)
 const erro = ref('')
+const carregando = ref(true)
 const modal = ref(null)
 const excluindo = ref(false)
 
-onMounted(async () => {
+onMounted(() => carregar(rota.params.id))
+
+// Recupera o produto, sua ficha técnica e a disponibilidade dos ingredientes.
+async function carregar(id) {
+  carregando.value = true
+  erro.value = ''
   try {
-    produto.value = await catalogo.buscarProduto(rota.params.id)
+    produto.value = await catalogo.buscarProduto(id)
+    ingredientesDisp.value = produto.value.disponibilidade !== 'EM_FALTA'
   } catch (falha) {
     erro.value = falha.message
   } finally {
     carregando.value = false
   }
-})
+}
 
 async function excluir() {
   excluindo.value = true
@@ -128,5 +140,13 @@ async function excluir() {
   font-size: 1.9rem;
   font-weight: 700;
   margin-bottom: 0.5rem;
+}
+
+.texto-ok {
+  color: #24704a;
+}
+
+.texto-falta {
+  color: #a33024;
 }
 </style>
