@@ -79,3 +79,4 @@ CREATE TABLE IF NOT EXISTS ItemFicha (
     FOREIGN KEY (fichaId) REFERENCES FichaTecnica(id) ON DELETE CASCADE,
     FOREIGN KEY (ingredienteId) REFERENCES Ingrediente(id)
 );
+CREATE INDEX IF NOT EXISTS idx_itens_pedido_pedidosID ON itens_pedido(pedidosID);

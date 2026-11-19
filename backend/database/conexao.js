@@ -1,15 +1,30 @@
-// CONEXÃO COM O BANCO DE DADOS DE USUARIOS; USADA POR CADASTROUSUARIO
+// abre o arquivo .db uma única vez e exporta essa conexão
+// todos os outros arquivos importam a mesma, nunca abrem uma nova
+
+// importa a biblioteca better-sqlite3
 const database = require('better-sqlite3');
+
+// importa o modulo path
+const path = require('path');
+
+// modulo fs para ler o conteudo
 const fs = require('fs');
-const path = require('path');                               // monta caminhos de arquivos
 
-const caminho = path.join(__dirname, 'sbc.sqlite');         // abre o banco de dados
-const db = new database(caminho); 
-db.pragma('foreign_keys = ON');                           // ativa para chaves estrangeiras
+// define o caminho
+const caminho = path.join(__dirname, 'sbc.sqlite');
 
-const caminho_schema = path.join(__dirname, 'schema.sql');        // cobre o esquema criado
-const textoLido = fs.readFileSync(caminho_schema, 'utf8');          // le o schema unificado
+// cria a conexão com o banco de dados
+const db = new database(caminho);
 
-db.exec(textoLido);         // executa o schema
+// foreign keys vem desligadas por padrão no SQLite, então precisamos ativar manualmente
+db.pragma('foreign_keys = ON');
 
-module.exports = db;        // exporta a conexao
+// monta o caminho do schema.sql
+// le o conteúdo do arquivo com utf8 para retornar uma string 
+const textoLido = fs.readFileSync(path.join(__dirname, 'schema.sql'), 'utf8');
+
+// passa o texto lido para o db.exec criar as tabelas
+db.exec(textoLido);
+
+// exporta a conexão pronta para ser usada nos outros arquivos
+module.exports = db;
