@@ -4,8 +4,10 @@ const jwt = require('jsonwebtoken');
 const CadastroUsuario = require('../models/cadastro-usuario');
 
 class ControleAutenticacao {
+    #cadastro;
+
     constructor() {
-        this.cadastro = new CadastroUsuario();          // associacao consults do diagrama de classes
+        this.#cadastro = new CadastroUsuario();          // associacao consults do diagrama de classes
     }
 
     iniciarSessao(usuario) {
@@ -18,7 +20,7 @@ class ControleAutenticacao {
             return null;
         }
         // pede para o CadastroUsuario buscar o login no database
-        const usuario = this.cadastro.buscarLogin(login);
+        const usuario = this.#cadastro.buscarLogin(login);
         if(!usuario) {
             return null;                // se nao houver nenhum usuario com esse login, o retorno será nulo
         }

@@ -21,7 +21,7 @@ class Usuario{
             return false;
         }
 
-        return bcrypt.compareSync(senha, this.#senhaHash);
+        return bcrypt.compareSync(senha, this.#senhaHash);      // recalcula o hash da senha fornecida e compara com o hash armazenado para verificar se coincidem
     }
 
     // getters
