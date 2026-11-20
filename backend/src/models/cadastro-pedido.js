@@ -37,8 +37,8 @@ class CadastroPedido {
 
     // busca um produto pelo ID (null se não existir)
     // TODO: trocar pela coleção de produtos da colega quando o catálogo (RF03) estiver pronto
-    buscarProdutoPorId(produtoID) {
-        return db.prepare('SELECT * FROM produtos WHERE produtoID = ?').get(produtoID) ?? null;
+    buscarProdutoPorId(id) {
+        return db.prepare('SELECT * FROM Produto WHERE id = ?').get(id) ?? null;
     }
 
     // insere o cabeçalho do pedido e devolve o ID gerado
@@ -57,13 +57,13 @@ class CadastroPedido {
     #inserirItem(pedidosID, item) {
         const sql = `
             INSERT INTO itens_pedido
-                (pedidosID, produtoID, quantidade, peso, preco_unitario, custo_unitario)
+                (pedidosID, id, quantidade, peso, preco_unitario, custo_unitario)
             VALUES
                 (?, ?, ?, ?, ?, ?)
         `;
         db.prepare(sql).run(
             pedidosID,
-            item.produtoID,
+            item.id,
             item.quantidade,
             item.peso,
             item.preco_unitario,
@@ -76,7 +76,7 @@ class CadastroPedido {
         const itens = db.prepare(`
             SELECT i.*, p.nome AS produto_nome
             FROM itens_pedido i
-            JOIN produtos p ON p.produtoID = i.produtoID
+            JOIN Produto p ON p.id = i.id
             WHERE i.pedidosID = ?
         `).all(linha.pedidosID);
 

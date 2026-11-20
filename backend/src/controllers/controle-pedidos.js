@@ -1,4 +1,4 @@
-// RESPONSÁVEL PELO LIMITE ENTRE BOUNDARY E ENTITY DO RF02; CORAÇÃO DO COMPONENTE DE PEDIDOS
+// RESPONSÁVEL PELO LIMITE ENTRE BOUNDARY E ENTITY DO; CORAÇÃO DO COMPONENTE DE PEDIDOS
 // QUEM CHAMA O RESTANTE DAS CLASSES (PEDIDO E CADASTROPEDIDO)
 // valida, busca preço no banco (via coleção) e calcula o total; não acessa o banco diretamente
 const CadastroPedido = require('../models/cadastro-pedido');
@@ -37,15 +37,15 @@ class ControlePedidos {
 
         // monta os itens usando o preço do banco, nunca o que veio do cliente
         const itens = dados.itens.map((item, i) => {
-            const produto = this.cadastro.buscarProdutoPorId(item.produtoID);
+            const produto = this.cadastro.buscarProdutoPorId(item.id);
             if (!produto) {
-                throw new ErroDeNegocio(`Item ${i + 1}: produto ${item.produtoID} não encontrado.`, 404);
+                throw new ErroDeNegocio(`Item ${i + 1}: produto ${item.id} não encontrado.`, 404);
             }
             return {
-                produtoID: item.produtoID,
+                id: item.id,
                 quantidade: item.quantidade,
                 peso: item.peso,
-                preco_unitario: produto.preco_base,     // cópia do preço no momento da venda
+                preco_unitario: produto.preco,     // cópia do preço no momento da venda
                 custo_unitario: 0,                      // TODO RF08: trocar pelo custo real calculado pela ficha técnica
             };
         });
@@ -95,7 +95,7 @@ class ControlePedidos {
 
         dados.itens.forEach((item, i) => {
             const n = i + 1;
-            if (!Number.isInteger(item.produtoID) || item.produtoID <= 0) {
+            if (!Number.isInteger(item.id) || item.id <= 0) {
                 throw new ErroDeNegocio(`Item ${n}: produto inválido.`);
             }
             if (!Number.isInteger(item.quantidade) || item.quantidade <= 0) {
