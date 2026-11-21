@@ -1,4 +1,4 @@
-// RESPONSÁVEL PELO LIMITE ENTRE BOUNDARY E ENTITY DO RF02; CORAÇÃO DO COMPONENTE DE PEDIDOS
+// RESPONSÁVEL PELO LIMITE ENTRE BOUNDARY E ENTITY DO; CORAÇÃO DO COMPONENTE DE PEDIDOS
 // QUEM CHAMA O RESTANTE DAS CLASSES (PEDIDO E CADASTROPEDIDO)
 // valida, busca preço no banco (via coleção) e calcula o total; não acessa o banco diretamente
 const CadastroPedido = require('../models/cadastro-pedido');
@@ -36,23 +36,66 @@ class ControlePedidos {
         this.#validarDadosPedido(dados);
 
         // monta os itens usando o preço do banco, nunca o que veio do cliente
-        const itens = dados.itens.map((item, i) => {
-            const produto = this.cadastro.buscarProdutoPorId(item.produtoID);
-            if (!produto) {
-                throw new ErroDeNegocio(`Item ${i + 1}: produto ${item.produtoID} não encontrado.`, 404);
-            }
-            return {
-                produtoID: item.produtoID,
-                quantidade: item.quantidade,
-                peso: item.peso,
-                preco_unitario: produto.preco_base,     // cópia do preço no momento da venda
-                custo_unitario: 0,                      // TODO RF08: trocar pelo custo real calculado pela ficha técnica
-            };
-        });
+        const itens = this.#montarItens(dados.itens);
 
         const pedido = new Pedido({ ...dados, itens });
         const pedidosID = this.cadastro.salvarPedidoCompleto(pedido);
         return this.buscarPedido(pedidosID);
+    }
+
+    // edita uma venda existente (substitui cabeçalho e itens)
+    // devolve o Pedido ja atualizado
+    editarPedido(pedidosID, corpo) {
+        // busca o pedido atual 
+        const pedidoOriginal = this.buscarPedido(pedidosID);
+
+        // monta os dados como no registrarPedido, mas o padrao do data_pedido e a data do pedido original (não #hojeISO), para n mexer nos relatorios
+        const dados = {
+            data_pedido: corpo.data_pedido ?? pedidoOriginal.getDataPedido(),
+            cliente_nome: corpo.cliente_nome,
+            cliente_contato: corpo.cliente_contato,
+            descricao: corpo.descricao ?? '',
+            data_entrega: corpo.data_entrega,
+            status_pagamento: corpo.status_pagamento,
+            itens: corpo.itens,
+        };
+
+        // valida
+        this.#validarDadosPedido(dados);
+
+        // monta os itens com o preco atual do catalogo
+        const itens = this.#montarItens(dados.itens);
+
+        // cria o Pedido com o id, atualiza e devolve o pedido salvo
+        const pedido = new Pedido({ ...dados, id: pedidosID, itens });
+        this.cadastro.atualizarPedidoCompleto(pedido);
+        return this.buscarPedido(pedidosID);
+    }
+
+    // exclusao logica
+    excluirPedido(pedidosID) {
+        const excluiu = this.cadastro.marcarComoExcluido(pedidosID);
+        if (!excluiu) {
+            throw new ErroDeNegocio('Pedido não encontrado.', 404);
+        }
+    }
+
+    // monta os itens usando o preço do banco, nunca o que veio do cliente
+    // (extraído do registrarPedido; usado também pelo editarPedido)
+    #montarItens(itensRecebidos) {
+        return itensRecebidos.map((item, i) => {
+            const produto = this.cadastro.buscarProdutoPorId(item.id);
+            if (!produto) {
+                throw new ErroDeNegocio(`Item ${i + 1}: produto ${item.id} não encontrado.`, 404);
+            }
+            return {
+                id: item.id,
+                quantidade: item.quantidade,
+                peso: item.peso,
+                preco_unitario: produto.preco,
+                custo_unitario: 0, // TODO RF08
+            };
+        });
     }
 
     // devolve o pedido com seus itens; 404 se não existir
@@ -95,7 +138,7 @@ class ControlePedidos {
 
         dados.itens.forEach((item, i) => {
             const n = i + 1;
-            if (!Number.isInteger(item.produtoID) || item.produtoID <= 0) {
+            if (!Number.isInteger(item.id) || item.id <= 0) {
                 throw new ErroDeNegocio(`Item ${n}: produto inválido.`);
             }
             if (!Number.isInteger(item.quantidade) || item.quantidade <= 0) {

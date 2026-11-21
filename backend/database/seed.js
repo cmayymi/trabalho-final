@@ -17,7 +17,7 @@ const insereCatalogo = db.transaction(() => {
 
     // teste de ficha, produto e itens
     const fichaBrigadeiro = novaFicha.run().lastInsertRowid;
-    novoProd.run('Brigadeiro', 'Brigadeiro tradicional', 3.5, fichaBrigadeiro);
+    novoProd.run('Brigadeiro', 'Brigadeiro tradicional', 350, fichaBrigadeiro);
     novoItem.run(fichaBrigadeiro, leiteCondensado, 10);
     novoItem.run(fichaBrigadeiro, chocolate, 5);
 
@@ -25,7 +25,7 @@ const insereCatalogo = db.transaction(() => {
 
     // teste de ficha, produto e itens
     const fichaBeijinho = novaFicha.run().lastInsertRowid;
-    novoProd.run('Beijinho', 'Beijinho tradicional', 2.5, fichaBeijinho);
+    novoProd.run('Beijinho', 'Beijinho tradicional', 250, fichaBeijinho);
     novoItem.run(fichaBeijinho, leiteCondensado, 10);
     novoItem.run(fichaBeijinho, coco, 15);
 });
