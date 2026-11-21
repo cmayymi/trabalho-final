@@ -14,7 +14,6 @@ CREATE TABLE IF NOT EXISTS Ingrediente (
     unidadeMedida TEXT NOT NULL,
     quantidadeEstoque REAL NOT NULL DEFAULT 0,
     estoqueMinimo REAL NOT NULL DEFAULT 0,
-    custoUltimaCompra INTEGER NOT NULL DEFAULT 0   -- centavos; ultimo valor pago, nao eh custo medio
     valorUltimaCompra INTEGER NOT NULL DEFAULT 0,       -- centavos pagos na última compra
     quantidadeUltimaCompra REAL NOT NULL DEFAULT 0,     -- na mesma unidade do ingrediente
     dataUltimaCompra TEXT                               -- AAAA-MM-DD

@@ -2,22 +2,17 @@
 // QUEM CHAMA O RESTANTE DAS CLASSES (PEDIDO E CADASTROPEDIDO)
 // valida, busca preço no banco (via coleção) e calcula o total; não acessa o banco diretamente
 const CadastroPedido = require('../models/cadastro-pedido');
+const CadastroProduto = require('../models/cadastro-produto');
 const Pedido = require('../models/pedido');
+const ErroDeNegocio = require('../utils/erro-de-negocio');
 const ValidadorData = require('../utils/validador-data');
-
-// erro com status HTTP, para a rota saber o que devolver
-class ErroDeNegocio extends Error {
-    constructor(mensagem, status = 400) {
-        super(mensagem);
-        this.status = status;
-    }
-}
 
 class ControlePedidos {
     static #STATUS_PAGAMENTO_VALIDOS = ['pendente', 'pago'];
 
     constructor() {
-        this.cadastro = new CadastroPedido();       // associacao consulta do diagrama de classes
+        this.cadastro = new CadastroPedido();               // associacao consulta do diagrama de classes
+        this.cadastroProduto = new CadastroProduto();       // para chegar na ficha tecnica (RF08)
     }
 
     // registra uma nova venda 
@@ -35,7 +30,7 @@ class ControlePedidos {
 
         this.#validarDadosPedido(dados);
 
-        // monta os itens usando o preço do banco, nunca o que veio do cliente
+        // monta os itens usando o preco e o custo do banco, nunca o que veio do cliente
         const itens = this.#montarItens(dados.itens);
 
         const pedido = new Pedido({ ...dados, itens });
@@ -80,20 +75,30 @@ class ControlePedidos {
         }
     }
 
-    // monta os itens usando o preço do banco, nunca o que veio do cliente
-    // (extraído do registrarPedido; usado também pelo editarPedido)
+    // monta os itens usando o preço e o custo do banco, nunca o que veio do cliente
+    // (usado pelo registrarPedido e pelo editarPedido, assim os dois calculam igual)
+    // produto por 'peso': preço e ficha valem por 1 kg, então os dois são multiplicados pelo mesmo fator (peso em g / 1000)
+    // preço e custo são arredondados por unidade (centavos inteiros); a diferença em vendas grandes é de poucos centavos e é aceita
     #montarItens(itensRecebidos) {
         return itensRecebidos.map((item, i) => {
-            const produto = this.cadastro.buscarProdutoPorId(item.id);
+            const n = i + 1;
+            const produto = this.cadastroProduto.buscarId(item.id);
             if (!produto) {
-                throw new ErroDeNegocio(`Item ${i + 1}: produto ${item.id} não encontrado.`, 404);
+                throw new ErroDeNegocio(`Item ${n}: produto ${item.id} não encontrado.`, 404);
             }
+
+            const porPeso = produto.getTipoVenda() === 'peso';
+            if (porPeso && (!Number.isInteger(item.peso) || item.peso <= 0)) {
+                throw new ErroDeNegocio(`Item ${n}: o peso (em gramas) deve ser um inteiro maior que zero.`);
+            }
+            const fator = porPeso ? item.peso / 1000 : 1;
+
             return {
                 id: item.id,
                 quantidade: item.quantidade,
-                peso: item.peso,
-                preco_unitario: produto.preco,
-                custo_unitario: 0, // TODO RF08
+                peso: porPeso ? item.peso : 0, // produto por unidade não tem peso
+                preco_unitario: Math.round(produto.getPreco() * fator), // copia do preco no momento da venda
+                custo_unitario: Math.round(produto.calcularCusto() * fator), // copia do custo no momento da venda
             };
         });
     }
@@ -143,9 +148,6 @@ class ControlePedidos {
             }
             if (!Number.isInteger(item.quantidade) || item.quantidade <= 0) {
                 throw new ErroDeNegocio(`Item ${n}: a quantidade deve ser um inteiro maior que zero.`);
-            }
-            if (!Number.isInteger(item.peso) || item.peso <= 0) {
-                throw new ErroDeNegocio(`Item ${n}: o peso (em gramas) deve ser um inteiro maior que zero.`);
             }
         });
     }
