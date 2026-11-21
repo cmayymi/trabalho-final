@@ -7,7 +7,7 @@ const router = express.Router();
 const ControleRelatorios = require('../controllers/controle-relatorios');
 const controle = new ControleRelatorios();
 
-// converte o erro em resposta HTTP
+// converte o erro em resposta HTTP: erro de negocio tem status proprio; o resto vira 500
 function responderErro(res, erro) {
     if (erro instanceof ControleRelatorios.ErroDeNegocio) {
         return res.status(erro.status).json({ erro: erro.message });
