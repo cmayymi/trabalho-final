@@ -63,4 +63,47 @@ router.get('/:id', (req, res) => {
     }
 });
 
+// PUT /api/pedidos/:id -> edita o pedido (cabeçalho e itens)
+router.put('/:id', (req, res) => {
+    const id = Number(req.params.id);
+    const corpo = req.body;
+
+    // id positivo (igual ao GET /:id)
+    if (!Number.isInteger(id) || id <= 0) {
+        return res.status(400).json({ erro: 'ID de pedido inválido.' });
+    }
+
+    // corpo objeto e itens lista (igual ao POST)
+    if (!corpo || typeof corpo !== 'object' || Array.isArray(corpo)) {
+        return res.status(400).json({ erro: 'Corpo da requisição inválido.' });
+    }
+    if (!Array.isArray(corpo.itens)) {
+        return res.status(400).json({ erro: "O campo 'itens' deve ser uma lista." });
+    }
+
+    try {
+        const pedido = controle.editarPedido(id, corpo);
+        return res.status(200).json(pedido);
+    } catch (erro) {
+        return responderErro(res, erro);
+    }
+});
+
+// DELETE /api/pedidos/:id -> exclusao logica (o pedido continua no banco)
+router.delete('/:id', (req, res) => {
+    const id = Number(req.params.id);
+
+    // validar o id 
+    if (!Number.isInteger(id) || id <= 0) {
+        return res.status(400).json({ erro: 'ID de pedido inválido.' });
+    }
+
+    try {
+        controle.excluirPedido(id);
+        return res.status(204).send(); // 204 não tem corpo
+    } catch (erro) {
+        return responderErro(res, erro);
+    }
+});
+
 module.exports = router;
