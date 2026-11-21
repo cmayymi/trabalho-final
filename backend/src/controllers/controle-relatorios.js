@@ -3,6 +3,8 @@
 const CadastroRelatorio = require('../models/cadastro-relatorio');
 const ErroDeNegocio = require('../utils/erro-de-negocio');
 const ValidadorData = require('../utils/validador-data');
+const ApuracaoLucro = require('../models/apuracao-lucro');
+const ItemApuracao = require('../models/item-apuracao');
 
 class ControleRelatorios {
     constructor() {
@@ -48,6 +50,50 @@ class ControleRelatorios {
         }));
 
         return { linhas };
+    }
+
+    // RF09: gera a apuracao do periodo, CONFERE com o RF08 e SALVA. devolve o JSON da apuracao
+    // periodo sem vendas -> zerado, com id: null e produtos: [], e NAO grava nada (nao ha o que apurar)
+    gerarRelatorioLucro(inicio, fim) {
+        this.#validarPeriodo(inicio, fim);
+
+        const itens = this.cadastro.buscarLucroPorProduto(inicio, fim).map((r) => new ItemApuracao(
+            r.produto_id,
+            r.produto,
+            r.quantidade,
+            r.faturamento,
+            r.custo
+        ));
+
+        const apuracao = new ApuracaoLucro(null, inicio, fim, ValidadorData.hojeISO(), itens);
+
+        if (itens.length === 0) {
+            return apuracao.toJSON();
+        }
+
+        this.#conferirComVendas(apuracao, inicio, fim);
+
+        apuracao.definirId(this.cadastro.salvarApuracao(apuracao));
+        return apuracao.toJSON();
+    }
+
+    // RF09: lista as apuracoes ja salvas (nao recalcula nada: mostra o que foi gravado)
+    listarHistoricoLucro() {
+        return { apuracoes: this.cadastro.listarApuracoes().map((a) => a.toJSON()) };
+    }
+
+    // o lucro total da apuracao TEM que ser igual a soma do lucro das linhas do RF08 no mesmo periodo
+    // se nao bater, eh bug: lanca Error comum (vira 500), NAO ErroDeNegocio, e NAO grava
+    #conferirComVendas(apuracao, inicio, fim) {
+        const lucroVendas = this.gerarRelatorioVendas(inicio, fim)
+            .linhas
+            .reduce((soma, linha) => soma + linha.lucro, 0);
+
+        if (lucroVendas !== apuracao.getLucro()) {
+            throw new Error(
+                `Lucro da apuração (${apuracao.getLucro()}) difere do relatório de vendas (${lucroVendas}) em ${inicio} a ${fim}.`
+            );
+        }
     }
 
     // lanca ErroDeNegocio (400) se as datas faltarem, forem invalidas ou fim < inicio

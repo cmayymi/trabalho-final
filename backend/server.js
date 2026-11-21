@@ -21,4 +21,10 @@ app.get('/api/saude', (req, res) => res.json({ ok: true }));            // rota 
 
 const PORTA = process.env.PORT || 3000;
 
-app.listen(PORTA, () => console.log(`Servidor rodando na porta ${PORTA}`));                           
+app.listen(PORTA, (erro) => {
+    if (erro) {
+        console.error('Falha ao iniciar o servidor:', erro.message);
+        process.exit(1);
+    }
+    console.log(`Servidor rodando na porta ${PORTA}`);
+});                       

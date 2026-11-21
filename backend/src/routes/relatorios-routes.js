@@ -35,4 +35,26 @@ router.get('/estoque', (req, res) => {
     }
 });
 
+// POST /api/relatorios/lucro   body: { "inicio": "AAAA-MM-DD", "fim": "AAAA-MM-DD" }
+// POST porque gera E grava a apuracao (GET nao deveria gravar nada)
+// 201 = gravou (id preenchido); 200 = periodo sem vendas, nada foi gravado (id: null)
+router.post('/lucro', (req, res) => {
+    const { inicio, fim } = req.body || {};
+    try {
+        const apuracao = controle.gerarRelatorioLucro(inicio, fim);
+        return res.status(apuracao.id === null ? 200 : 201).json(apuracao);
+    } catch (erro) {
+        return responderErro(res, erro);
+    }
+});
+
+// GET /api/relatorios/lucro/historico
+router.get('/lucro/historico', (req, res) => {
+    try {
+        return res.status(200).json(controle.listarHistoricoLucro());
+    } catch (erro) {
+        return responderErro(res, erro);
+    }
+});
+
 module.exports = router;
