@@ -77,3 +77,32 @@ CREATE TABLE IF NOT EXISTS historico_pedidos (
 
 CREATE INDEX IF NOT EXISTS idx_pedidos_situacao_data ON pedidos(situacao, data_pedido);
 CREATE INDEX IF NOT EXISTS idx_itens_pedido_pedidosID ON itens_pedido(pedidosID);
+
+-- ====== RF09 - RELATORIO DE LUCRO (historico de apuracoes) =======
+-- tudo em centavos (inteiros), igual ao resto do sistema; margem em % (REAL)
+CREATE TABLE IF NOT EXISTS apuracao_lucro (
+    apuracaoID INTEGER PRIMARY KEY AUTOINCREMENT,
+    data_inicio TEXT NOT NULL,              -- AAAA-MM-DD
+    data_fim TEXT NOT NULL,                 -- AAAA-MM-DD
+    faturamento INTEGER NOT NULL,
+    custo_total INTEGER NOT NULL,
+    lucro INTEGER NOT NULL,
+    margem REAL NOT NULL,                   -- lucro / faturamento * 100
+    data_apuracao TEXT NOT NULL             -- quando foi gerada (AAAA-MM-DD)
+);
+
+-- memoria de calculo: 1 linha por produto da apuracao (foto do que foi exibido)
+CREATE TABLE IF NOT EXISTS apuracao_lucro_produto (
+    apuracao_produtoID INTEGER PRIMARY KEY AUTOINCREMENT,
+    apuracaoID INTEGER NOT NULL,
+    produto_id INTEGER,                     -- sem FK de proposito: o produto pode ser removido depois
+    produto_nome TEXT NOT NULL,             -- guarda o nome da epoca
+    quantidade INTEGER NOT NULL,
+    faturamento INTEGER NOT NULL,
+    custo INTEGER NOT NULL,
+    lucro INTEGER NOT NULL,
+    margem REAL NOT NULL,
+    FOREIGN KEY (apuracaoID) REFERENCES apuracao_lucro(apuracaoID) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_apuracao_produto_apuracaoID ON apuracao_lucro_produto(apuracaoID);

@@ -19,7 +19,7 @@ class ControlePedidos {
     // recebe o corpo da requisição e devolve o Pedido completo já salvo
     registrarPedido(corpo) {
         const dados = {
-            data_pedido: corpo.data_pedido ?? this.#hojeISO(),
+            data_pedido: corpo.data_pedido ?? ValidadorData.hojeISO(),
             cliente_nome: corpo.cliente_nome,
             cliente_contato: corpo.cliente_contato,
             descricao: corpo.descricao ?? '',
@@ -44,7 +44,7 @@ class ControlePedidos {
         // busca o pedido atual 
         const pedidoOriginal = this.buscarPedido(pedidosID);
 
-        // monta os dados como no registrarPedido, mas o padrao do data_pedido e a data do pedido original (não #hojeISO), para n mexer nos relatorios
+        // monta os dados como no registrarPedido, mas o padrao do data_pedido e a data do pedido original (não a data de hoje), para n mexer nos relatorios
         const dados = {
             data_pedido: corpo.data_pedido ?? pedidoOriginal.getDataPedido(),
             cliente_nome: corpo.cliente_nome,
@@ -150,14 +150,6 @@ class ControlePedidos {
                 throw new ErroDeNegocio(`Item ${n}: a quantidade deve ser um inteiro maior que zero.`);
             }
         });
-    }
-
-    // data de hoje no formato AAAA-MM-DD (usa o fuso do servidor, não UTC)
-    #hojeISO() {
-        const agora = new Date();
-        const mes = String(agora.getMonth() + 1).padStart(2, '0');
-        const dia = String(agora.getDate()).padStart(2, '0');
-        return `${agora.getFullYear()}-${mes}-${dia}`;
     }
 
     #textoPreenchido(valor) {
