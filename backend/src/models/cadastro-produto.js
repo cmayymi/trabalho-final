@@ -10,7 +10,7 @@ class CadastroProduto {
         const cadastro_fichatec = new CadastroFichaTecnica();
         const lista = db.prepare('SELECT * FROM Produto').all();    
         return lista.map(prod => {
-            return new Produto(prod.id, prod.nome, prod.descricao, prod.preco, cadastro_fichatec.buscarId(prod.fichaId))});                        // retorna o produto com suas respectivas informacoes
+            return new Produto(prod.id, prod.nome, prod.descricao, prod.preco, cadastro_fichatec.buscarId(prod.fichaId), prod.tipo_venda)}); // retorna o produto com suas respectivas informacoes
     }
 
     buscarId(id) {
@@ -21,7 +21,7 @@ class CadastroProduto {
         }
 
         const ficha = new CadastroFichaTecnica();
-        return new Produto(prod.id, prod.nome, prod.descricao, prod.preco, ficha.buscarId(prod.fichaId));
+        return new Produto(prod.id, prod.nome, prod.descricao, prod.preco, ficha.buscarId(prod.fichaId), prod.tipo_venda);
     }
 
     cadastrarProduto(produto) {
@@ -32,8 +32,8 @@ class CadastroProduto {
             const fichaId = novaFicha.run().lastInsertRowid;                            // guarda o identificador gerado pelo banco
 
             // cadastra o produto no banco de dados
-            const novoProduto = db.prepare('INSERT INTO Produto (nome, descricao, preco, fichaId) VALUES (?, ?, ?, ?)');
-            novoProduto.run(produto.getNome(), produto.getDescricao(), produto.getPreco(), fichaId);
+            const novoProduto = db.prepare('INSERT INTO Produto (nome, descricao, preco, fichaId, tipo_venda) VALUES (?, ?, ?, ?, ?)');
+            novoProduto.run(produto.getNome(), produto.getDescricao(), produto.getPreco(), fichaId, produto.getTipoVenda());
 
             // cadastra os novos itens da ficha
             const novoItem = db.prepare('INSERT INTO ItemFicha (fichaId, ingredienteId, quantidade) VALUES (?, ?, ?)');
@@ -55,8 +55,8 @@ class CadastroProduto {
             }
 
             const fichaId = registro.fichaId;
-            const atualiza = db.prepare('UPDATE Produto SET nome = ?, descricao = ?, preco = ? WHERE id = ?');
-            atualiza.run(produto.getNome(), produto.getDescricao(), produto.getPreco(), produto.getId());
+            const atualiza = db.prepare('UPDATE Produto SET nome = ?, descricao = ?, preco = ?, tipo_venda = ? WHERE id = ?');
+            atualiza.run(produto.getNome(), produto.getDescricao(), produto.getPreco(), produto.getTipoVenda(), produto.getId());
 
             // apagar os itens antigos
             const deleta_itens = db.prepare('DELETE FROM ItemFicha WHERE fichaId = ?');

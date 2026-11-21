@@ -12,7 +12,12 @@ CREATE TABLE IF NOT EXISTS Ingrediente (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     nome TEXT NOT NULL,
     unidadeMedida TEXT NOT NULL,
-    quantidadeEstoque REAL NOT NULL DEFAULT 0
+    quantidadeEstoque REAL NOT NULL DEFAULT 0,
+    estoqueMinimo REAL NOT NULL DEFAULT 0,
+    custoUltimaCompra INTEGER NOT NULL DEFAULT 0   -- centavos; ultimo valor pago, nao eh custo medio
+    valorUltimaCompra INTEGER NOT NULL DEFAULT 0,       -- centavos pagos na última compra
+    quantidadeUltimaCompra REAL NOT NULL DEFAULT 0,     -- na mesma unidade do ingrediente
+    dataUltimaCompra TEXT                               -- AAAA-MM-DD
 );
 
 CREATE TABLE IF NOT EXISTS FichaTecnica (
@@ -23,9 +28,10 @@ CREATE TABLE IF NOT EXISTS Produto (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     nome TEXT NOT NULL,
     descricao TEXT,
-    preco INTEGER NOT NULL CHECK(preco >= 0),
-    fichaId INTEGER NOT NULL UNIQUE,                        -- todo produto tem uma unica ficha, ou seja, nao pode haver uma ficha compartilhada por dois ou mais produtos
-    FOREIGN KEY (fichaId) REFERENCES FichaTecnica(id)       -- guarda a associacao do diagrama com Produto -> FichaTecnica, armazenando a chave 
+    preco INTEGER NOT NULL CHECK(preco >= 0),                -- 'unidade': preço de 1 unidade; 'peso': preço de 1 kg (centavos)
+    tipo_venda TEXT NOT NULL DEFAULT 'unidade' CHECK(tipo_venda IN ('unidade', 'peso')),
+    fichaId INTEGER NOT NULL UNIQUE,
+    FOREIGN KEY (fichaId) REFERENCES FichaTecnica(id)
 );
 
 CREATE TABLE IF NOT EXISTS ItemFicha (
