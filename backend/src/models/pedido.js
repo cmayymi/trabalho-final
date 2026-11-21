@@ -43,6 +43,28 @@ class Pedido {
         );
     }
 
+    // soma quantidade x custo unitário de todos os itens (centavos)
+    calcularCusto() {
+        return this.#itens.reduce(
+            (soma, item) => soma + item.quantidade * item.custo_unitario,
+            0
+        );
+    }
+
+    // lucro = total vendido - custo (centavos)
+    calcularLucro() {
+        return this.calcularTotal() - this.calcularCusto();
+    }
+
+    // margem em % lucro / total * 100 (0 se o total for zero)
+    calcularMargem() {
+        const total = this.calcularTotal();
+        if (total === 0) {
+            return 0;
+        }
+        return this.calcularLucro() / total * 100;
+    }
+
     // dados no formato das colunas da tabela pedidos (usado pela coleção para o INSERT)
     paraBanco() {
         return {

@@ -14,6 +14,9 @@ class ItemFicha {
     verificarDisp() {                       // verifica se o ingrediente esta disponivel
         return this.ingrediente.possuiQuant(this.#quantidade);
     }
+    calcularCusto() {
+    return this.ingrediente.calcularCusto(this.#quantidade);
+}
 }
 
 module.exports = ItemFicha; 

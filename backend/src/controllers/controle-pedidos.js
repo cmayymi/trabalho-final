@@ -3,6 +3,7 @@
 // valida, busca preço no banco (via coleção) e calcula o total; não acessa o banco diretamente
 const CadastroPedido = require('../models/cadastro-pedido');
 const Pedido = require('../models/pedido');
+const ValidadorData = require('../utils/validador-data');
 
 // erro com status HTTP, para a rota saber o que devolver
 class ErroDeNegocio extends Error {
@@ -14,7 +15,6 @@ class ErroDeNegocio extends Error {
 
 class ControlePedidos {
     static #STATUS_PAGAMENTO_VALIDOS = ['pendente', 'pago'];
-    static #REGEX_DATA = /^\d{4}-\d{2}-\d{2}$/;     // formato AAAA-MM-DD (permite comparar como texto)
 
     constructor() {
         this.cadastro = new CadastroPedido();       // associacao consulta do diagrama de classes
@@ -123,10 +123,10 @@ class ControlePedidos {
         if (!ControlePedidos.#STATUS_PAGAMENTO_VALIDOS.includes(dados.status_pagamento)) {
             throw new ErroDeNegocio("O status do pagamento deve ser 'pendente' ou 'pago'.");
         }
-        if (!this.#dataValida(dados.data_pedido)) {
+        if (!ValidadorData.dataValida(dados.data_pedido)) {
             throw new ErroDeNegocio('A data do pedido é inválida (use AAAA-MM-DD).');
         }
-        if (!this.#dataValida(dados.data_entrega)) {
+        if (!ValidadorData.dataValida(dados.data_entrega)) {
             throw new ErroDeNegocio('A data de entrega é inválida (use AAAA-MM-DD).');
         }
         if (dados.data_entrega < dados.data_pedido) {
@@ -156,15 +156,6 @@ class ControlePedidos {
         const mes = String(agora.getMonth() + 1).padStart(2, '0');
         const dia = String(agora.getDate()).padStart(2, '0');
         return `${agora.getFullYear()}-${mes}-${dia}`;
-    }
-
-    // confere se é uma data real, não só o formato (ex.: 2026-02-31 é inválida)
-    #dataValida(texto) {
-        if (typeof texto !== 'string' || !ControlePedidos.#REGEX_DATA.test(texto)) {
-            return false;
-        }
-        const d = new Date(`${texto}T00:00:00Z`);
-        return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === texto;
     }
 
     #textoPreenchido(valor) {

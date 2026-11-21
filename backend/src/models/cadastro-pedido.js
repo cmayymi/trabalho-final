@@ -35,12 +35,6 @@ class CadastroPedido {
         return linhas.map((linha) => this.#montarPedido(linha));
     }
 
-    // busca um produto pelo ID (null se não existir)
-    // TODO: trocar pela coleção de produtos da colega quando o catálogo (RF03) estiver pronto
-    buscarProdutoPorId(id) {
-        return db.prepare('SELECT * FROM Produto WHERE id = ?').get(id) ?? null;
-    }
-
     // insere o cabeçalho do pedido e devolve o ID gerado
     #inserirPedido(pedido) {
         const sql = `
@@ -161,7 +155,7 @@ class CadastroPedido {
     // transforma uma linha do banco em um objeto Pedido, carregando os itens (com o nome do produto)
     #montarPedido(linha) {
         const itens = db.prepare(`
-            SELECT i.*, p.nome AS produto_nome
+            SELECT i.*, i.id AS produtoID, p.nome AS produto_nome
             FROM itens_pedido i
             JOIN Produto p ON p.id = i.id
             WHERE i.pedidosID = ?
