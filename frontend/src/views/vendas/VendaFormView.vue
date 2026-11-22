@@ -8,8 +8,8 @@
   <EstadoPagina v-else-if="editando && !vendasApi.podeEditar" icone="bi-tools" titulo="Edição ainda não disponível" texto="A edição de pedidos (RF10) ainda não foi implementada no servidor.">
     <router-link class="btn btn-branco" :to="{ name: 'vendas' }">Voltar às vendas</router-link>
   </EstadoPagina>
-  <EstadoPagina v-else-if="!produtos.length" titulo="O catálogo está vazio" texto="Cadastre um produto antes de registrar uma venda.">
-    <router-link class="btn btn-ambar" :to="{ name: 'produto-novo' }">+ Novo produto</router-link>
+  <EstadoPagina v-else-if="!produtos.length" titulo="O catálogo está vazio" texto="É preciso ter produtos no catálogo para registrar uma venda.">
+    <router-link class="btn btn-ambar" :to="{ name: 'catalogo' }">Ir para o catálogo</router-link>
   </EstadoPagina>
 
   <form v-else novalidate @submit.prevent="revisar">
@@ -41,7 +41,7 @@
         <label class="form-label" for="produto">Produto</label>
         <select id="produto" v-model="form.produtoId" class="form-select" :class="{ 'is-invalid': erros.produtoId }" @change="aoTrocarProduto">
           <option :value="null" disabled>Selecione um produto</option>
-          <option v-for="p in produtos" :key="p.id" :value="p.id">{{ p.nome }}</option>
+          <option v-for="p in produtos" :key="p.id" :value="p.id">{{ p.nome }} ({{ precoComUnidade(p) }})</option>
         </select>
         <div class="invalid-feedback">{{ erros.produtoId }}</div>
       </div>
@@ -50,10 +50,10 @@
         <input id="quantidade" v-model.number="form.quantidade" type="number" min="1" step="1" class="form-control" :class="{ 'is-invalid': erros.quantidade }" @input="recalcularValor" />
         <div class="invalid-feedback">{{ erros.quantidade }}</div>
       </div>
-      <div class="col-6 col-lg-2">
-        <label class="form-label" for="peso">Peso</label>
+      <div v-if="porPeso" class="col-6 col-lg-2">
+        <label class="form-label" for="peso">Peso de cada item</label>
         <div class="input-group has-validation">
-          <input id="peso" v-model.number="form.peso" type="number" min="0" step="0.1" class="form-control" :class="{ 'is-invalid': erros.peso }" />
+          <input id="peso" v-model.number="form.peso" type="number" min="0" step="0.1" class="form-control" :class="{ 'is-invalid': erros.peso }" @input="recalcularValor" />
           <span class="input-group-text">kg</span>
           <div class="invalid-feedback">{{ erros.peso }}</div>
         </div>
@@ -103,7 +103,7 @@
   <ModalConfirmacao ref="modal" titulo="Confirme a venda" texto-confirmar="Confirmar venda" texto-cancelar="Voltar e editar" :ocupado="enviando" @confirmar="confirmar">
     <dl class="row mb-0 resumo">
       <dt class="col-5">Cliente</dt><dd class="col-7">{{ form.cliente }}</dd>
-      <dt class="col-5">Produto</dt><dd class="col-7">{{ produtoSelecionado?.nome }} × {{ form.quantidade }}</dd>
+      <dt class="col-5">Produto</dt><dd class="col-7">{{ produtoSelecionado?.nome }} × {{ form.quantidade }}<template v-if="porPeso"> de {{ form.peso }} kg</template></dd>
       <dt class="col-5">Entrega</dt><dd class="col-7">{{ dataLonga(form.dataEntrega) }}</dd>
       <dt class="col-5">Pagamento</dt><dd class="col-7">{{ form.statusPagamento }}</dd>
       <dt class="col-5">Valor total</dt><dd class="col-7 fs-5 fw-bold">{{ moeda(form.valorTotal) }}</dd>
@@ -122,7 +122,7 @@ import ModalConfirmacao from '@/components/comum/ModalConfirmacao.vue'
 import catalogo from '@/services/catalogo'
 import vendasApi from '@/services/vendas'
 import { avisar } from '@/composables/avisos'
-import { dataLonga, hojeISO, mascaraWhatsApp, moeda } from '@/utils/formatadores'
+import { dataLonga, hojeISO, mascaraWhatsApp, moeda, precoComUnidade } from '@/utils/formatadores'
 
 const rota = useRoute()
 const router = useRouter()
@@ -153,6 +153,10 @@ const form = reactive({
 
 const produtoSelecionado = computed(() => produtos.value.find((p) => p.id === form.produtoId))
 
+// Produtos vendidos por peso (bolos) têm preço e ficha técnica por kg; os outros, por unidade.
+const porPeso = computed(() => produtoSelecionado.value?.tipoVenda === 'peso')
+const fator = computed(() => (porPeso.value ? Number(form.peso) || 0 : 1))
+
 onMounted(async () => {
   try {
     const [lista, venda] = await Promise.all([
@@ -162,7 +166,7 @@ onMounted(async () => {
     produtos.value = lista
     if (venda) {
       original.value = venda
-      valorManual.value = true
+      valorManual.value = vendasApi.valorManual
       Object.keys(form).forEach((campo) => { form[campo] = venda[campo] })
     } else if (rota.query.produto) {
       form.produtoId = Number(rota.query.produto)
@@ -182,14 +186,15 @@ function digitarWhatsApp(evento) {
 
 function recalcularValor() {
   if (!valorManual.value && produtoSelecionado.value) {
-    form.valorTotal = produtoSelecionado.value.precoBase * (Number(form.quantidade) || 0)
+    const centavos = Math.round(produtoSelecionado.value.precoBase * 100 * fator.value)
+    form.valorTotal = (centavos * (Number(form.quantidade) || 0)) / 100
   }
 }
 
 function aoTrocarProduto() {
   const produto = produtoSelecionado.value
   if (!produto) return
-  form.peso = produto.peso
+  form.peso = produto.tipoVenda === 'peso' ? form.peso || 1 : 0
   valorManual.value = false
   recalcularValor()
 }
@@ -207,8 +212,10 @@ const analise = computed(() => {
     return { tipo: 'falta', icone: 'bi-x-circle', mensagem: 'Produto sem ficha técnica completa.' }
   }
 
-  const quantidade = Number(form.quantidade) || 0
-  const anterior = original.value?.produtoId === produto.id ? original.value.quantidade : 0
+  // Para produtos por peso, a ficha vale para 1 kg: o consumo é multiplicado pelo peso.
+  const quantidade = (Number(form.quantidade) || 0) * fator.value
+  const pesoAnterior = porPeso.value ? Number(original.value?.peso) || 0 : 1
+  const anterior = original.value?.produtoId === produto.id ? original.value.quantidade * pesoAnterior : 0
   const faltantes = produto.fichaTecnica.filter(
     (item) => item.quantidade * quantidade > item.saldoDisponivel + item.quantidade * anterior + 1e-9
   )
@@ -238,7 +245,7 @@ function validar() {
   if (!form.dataPedido) erros.dataPedido = 'Informe a data do pedido.'
   if (!form.produtoId) erros.produtoId = 'Selecione um produto.'
   if (!Number.isInteger(form.quantidade) || form.quantidade < 1) erros.quantidade = 'Use um número inteiro a partir de 1.'
-  if (!(form.peso > 0)) erros.peso = 'Informe um peso válido.'
+  if (porPeso.value && !(form.peso > 0)) erros.peso = 'Informe o peso em kg.'
   if (!form.dataEntrega) erros.dataEntrega = 'Informe a data de entrega.'
   else if (form.dataPedido && form.dataEntrega < form.dataPedido) erros.dataEntrega = 'A entrega não pode ser antes do pedido.'
   if (!(form.valorTotal > 0)) erros.valorTotal = 'Informe o valor da venda.'

@@ -1,158 +1,100 @@
 # Contrato da API
 
-Formato que o frontend espera de cada rota. Serve de referência para implementar o backend.
+Rotas do backend usadas pelo frontend, no formato em que o backend responde. As conversões para as telas ficam em `src/services/`.
 
 - Todas as rotas começam com `/api` e usam JSON.
-- Exceto `POST /api/login`, todas devem exigir `Authorization: Bearer <token>`.
-- Token ausente, inválido ou expirado: responder `401`. O frontend volta para o login.
-- Erros: responder `{ "erro": "Mensagem para a usuária." }` com status `400`, `404`, `409` ou `422`.
-- Datas no formato `YYYY-MM-DD`. Valores em número, com ponto decimal.
+- O frontend envia `Authorization: Bearer <token>` em todas as chamadas depois do login.
+- Valores em dinheiro são inteiros em **centavos**; pesos são inteiros em **gramas**; datas são `AAAA-MM-DD`.
+- Erros: `{ "erro": "Mensagem para a usuária." }`, com status `400`, `401`, `404` ou `500`.
 
-## Autenticação (já existe)
+## Autenticação (UC6, RF05)
 
 ### `POST /api/login`
 
-Corpo: `{ "login": "...", "senha": "..." }`
+Corpo: `{ "login": "...", "senha": "..." }` → `200 { "token": "<jwt>" }`, `400` (campos vazios) ou `401` (credenciais inválidas).
 
-| Status | Resposta |
+## Catálogo (UC9, RF03)
+
+### `GET /api/produtos`
+
+```json
+[
+  {
+    "id": 3,
+    "nome": "Bolo de chocolate",
+    "descricao": "Bolo de chocolate (preço por kg)",
+    "preco": 8000,
+    "tipoVenda": "peso",
+    "ficha": {
+      "itens": [
+        { "quantidade": 500, "ingrediente": { "id": 4, "nome": "Farinha de trigo", "unidadeMedida": "g", "quantidadeEstoque": 10000 } }
+      ]
+    }
+  }
+]
+```
+
+- `tipoVenda`: `unidade` (preço de 1 unidade) ou `peso` (preço e ficha técnica de 1 kg). **O backend ainda precisa incluir este campo em `converterProdutoJSON`**; sem ele, o frontend trata todos os produtos como vendidos por unidade.
+
+### `GET /api/produtos/:id`
+
+`{ "produto": { ...igual ao item acima }, "ficha": { "itens": [...] }, "ingredientesDisp": true }`
+
+## Vendas (UC2, RF02 e RF10)
+
+| Rota | Descrição |
 | --- | --- |
-| 200 | `{ "token": "<jwt>" }` |
-| 400 | `{ "erro": "Login e senha são obrigatórios." }` |
-| 401 | `{ "erro": "Login ou senha inválidos." }` |
+| `GET /api/pedidos` | Lista os pedidos ativos |
+| `GET /api/pedidos/:id` | Detalha um pedido |
+| `POST /api/pedidos` | Registra uma venda (`201`) |
+| `PUT /api/pedidos/:id` | Edita um pedido (RF10) |
+| `DELETE /api/pedidos/:id` | Exclusão lógica do pedido (`204`, RF10) |
 
-Sugestão: devolver também `"nome"`. Hoje, sem esse campo, o frontend exibe "Betina".
-
-## Catálogo
-
-### Produto
+Corpo de `POST` e `PUT`:
 
 ```json
 {
-  "id": 1,
-  "nome": "Bolo de chocolate",
-  "categoria": "Bolos",
-  "massa": "Chocolate",
-  "cobertura": "Brigadeiro",
-  "descricao": "Bolo artesanal...",
-  "peso": 1.5,
-  "precoBase": 120,
-  "foto": null,
-  "disponibilidade": "DISPONIVEL",
-  "fichaTecnica": [
-    {
-      "insumoId": 1,
-      "ingrediente": "Farinha",
-      "quantidade": 500,
-      "unidade": "g",
-      "saldoDisponivel": 12000,
-      "status": "OK"
-    }
-  ]
+  "data_pedido": "2026-11-22",
+  "cliente_nome": "Maria Silva",
+  "cliente_contato": "(45) 99999-0000",
+  "descricao": "",
+  "data_entrega": "2026-11-30",
+  "status_pagamento": "pendente",
+  "itens": [{ "id": 3, "quantidade": 2, "peso": 1500 }]
 }
 ```
 
-- `disponibilidade`: `DISPONIVEL`, `CRITICO` ou `EM_FALTA`.
-- `status` do item: `OK`, `CRITICO` (saldo igual ou abaixo do mínimo) ou `FALTA` (saldo menor que a quantidade da ficha).
-- `saldoDisponivel`: saldo convertido para a mesma unidade do item da ficha.
-- `foto`: `null` ou imagem em data URL/URL.
+- `itens[].id` é o `id` do produto do catálogo. `peso` (gramas de cada item) é obrigatório só para produtos por peso; para produtos por unidade, envie `0`.
+- O backend calcula `preco_unitario`, `custo_unitario` (RF08) e `valor_total` pelos dados do catálogo.
 
-| Rota | Corpo | Resposta |
-| --- | --- | --- |
-| `GET /api/produtos` | | Lista de produtos ativos, com `fichaTecnica` |
-| `GET /api/produtos/:id` | | Produto |
-| `POST /api/produtos` | Campos editáveis | `201` + produto |
-| `PUT /api/produtos/:id` | Campos editáveis | Produto |
-| `DELETE /api/produtos/:id` | | `204`; não pode apagar vendas antigas (RF11) |
-
-Campos editáveis: `nome`, `categoria`, `massa`, `cobertura`, `descricao`, `peso`, `precoBase`, `foto` e `fichaTecnica` (`insumoId`, `ingrediente`, `quantidade`, `unidade`).
-
-### `GET /api/insumos`
-
-```json
-[{ "id": 1, "nome": "Farinha", "saldo": 12, "unidade": "kg", "minimo": 5, "status": "OK" }]
-```
-
-`unidade`: `kg`, `l` ou `un`. `status`: `OK` ou `CRITICO`.
-
-## Vendas (já existe no backend: `/api/pedidos`)
-
-Implementado pela Carol na branch `rf02-rf10-schema-pedidos`. O frontend converte os nomes em `src/services/vendas.js`: valores em centavos, peso em gramas e status em minúsculas.
-
-| Rota | Corpo | Resposta |
-| --- | --- | --- |
-| `GET /api/pedidos` | | Lista de pedidos ativos, do mais recente ao mais antigo |
-| `GET /api/pedidos/:id` | | Pedido com seus itens; `404` se não existir |
-| `POST /api/pedidos` | Pedido sem `pedidosID` | `201` + pedido salvo |
-
-Corpo do `POST`, como o frontend envia:
+Resposta de um pedido:
 
 ```json
 {
-  "data_pedido": "2026-11-10",
+  "pedidosID": 2,
+  "data_pedido": "2026-11-22",
   "cliente_nome": "Maria Silva",
   "cliente_contato": "(45) 99999-0000",
-  "descricao": "Cobertura brigadeiro",
-  "data_entrega": "2026-11-20",
+  "descricao": "",
+  "data_entrega": "2026-11-30",
   "status_pagamento": "pendente",
-  "itens": [{ "produtoID": 1, "quantidade": 1, "peso": 1500 }]
-}
-```
-
-Resposta (o `valor_total` é calculado pelo servidor a partir de `preco_base`):
-
-```json
-{
-  "pedidosID": 1,
-  "data_pedido": "2026-11-10",
-  "cliente_nome": "Maria Silva",
-  "cliente_contato": "(45) 99999-0000",
-  "descricao": "Cobertura brigadeiro",
-  "data_entrega": "2026-11-20",
-  "status_pagamento": "pendente",
-  "valor_total": 12000,
+  "valor_total": 24000,
   "situacao": "ativo",
-  "itens": [{ "produtoID": 1, "quantidade": 1, "peso": 1500, "preco_unitario": 12000, "custo_unitario": 0, "produto_nome": "Bolo de chocolate" }]
+  "itens": [{ "id": 3, "produtoID": 3, "produto_nome": "Bolo de chocolate", "quantidade": 2, "peso": 1500, "preco_unitario": 12000, "custo_unitario": 1575 }]
 }
 ```
 
-### Para a venda funcionar com o banco
+## Relatórios (UC1, RF01, RF08 e RF09)
 
-Os produtos da tela de venda ainda vêm do catálogo de teste do frontend. Por isso a tabela `produtos` precisa ter os mesmos IDs e preços. O script `backend/database/seed-produtos.js` faz isso (`node database/seed-produtos.js`, dentro de `backend`); o SQL equivalente é:
+| Rota | Resposta |
+| --- | --- |
+| `GET /api/relatorios/vendas?inicio=&fim=` | `{ "linhas": [{ "pedido", "cliente", "item", "data", "venda", "custo", "lucro" }] }` |
+| `GET /api/relatorios/estoque` | `{ "linhas": [{ "insumo", "unidade", "estoque_atual", "estoque_minimo", "custo_unitario", "valor_ultima_compra", "quantidade_ultima_compra", "data_ultima_compra", "abaixo_do_minimo", "sem_custo" }] }` |
+| `POST /api/relatorios/lucro` (corpo `{ "inicio", "fim" }`) | Apuração gravada: `{ "id", "inicio", "fim", "data_apuracao", "faturamento", "custo_total", "lucro", "margem", "produtos": [...] }` |
+| `GET /api/relatorios/lucro/historico` | `{ "apuracoes": [ ...apurações ] }` |
 
-```sql
-INSERT OR IGNORE INTO produtos (produtoID, nome, preco_base) VALUES
-  (1, 'Bolo de chocolate', 12000),
-  (2, 'Bolo de frutas', 9500),
-  (3, 'Torta de morango', 11000),
-  (4, 'Bolo de cenoura', 8500),
-  (5, 'Torta de limão', 9800),
-  (6, 'Brigadeiro gourmet (cento)', 18000);
-```
+## Ainda não existe no backend
 
-Ainda não existe no backend, e por isso o frontend esconde ou avisa:
-
-- Edição de pedidos e troca do status de pagamento (RF10, `PUT`).
-- Baixa automática de estoque (UC04).
-- Exigência de token nas rotas `/api/pedidos` (o RF05 pede login para qualquer funcionalidade).
-
-## Relatório de vendas
-
-### `GET /api/relatorios/vendas?inicio=2026-09-01&fim=2026-09-30`
-
-```json
-{
-  "linhas": [
-    {
-      "pedido": 1042,
-      "cliente": "Maria Silva",
-      "item": "Bolo de chocolate",
-      "data": "2026-09-09",
-      "venda": 120,
-      "custo": 46,
-      "lucro": 74
-    }
-  ]
-}
-```
-
-Sem vendas no período: `{ "linhas": [] }`. Os totais são calculados no frontend. Período inválido: `400`.
+- Rotas de cadastrar, editar e excluir produto (RF11), de preços (RF07), de estoque e movimentações (RF04, RF12) e de alteração de senha.
+- Baixa automática no estoque ao registrar uma venda (UC4, incluído no UC2).
+- Exigência de token nas rotas `/api/pedidos` e `/api/relatorios`.

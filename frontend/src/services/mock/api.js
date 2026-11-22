@@ -1,4 +1,4 @@
-// Simula o backend no navegador, seguindo o contrato de docs/CONTRATO-API.md.
+// Simula o backend no navegador (modo demonstração), com os dados já convertidos para as telas.
 // Para testar as telas de erro: localStorage.setItem('sbc.mock.falha', '1')
 import { ErroApi } from '../http'
 import { criarBancoInicial } from './dados'
@@ -63,7 +63,13 @@ function montarProduto(banco, produto) {
   let disponibilidade = 'DISPONIVEL'
   if (estados.includes('FALTA') || !estados.length) disponibilidade = 'EM_FALTA'
   else if (estados.includes('CRITICO')) disponibilidade = 'CRITICO'
-  return { ...copia(produto), fichaTecnica, disponibilidade }
+  return {
+    ...copia(produto),
+    tipoVenda: produto.tipoVenda || 'unidade',
+    fichaTecnica,
+    disponibilidade,
+    ingredientesDisp: disponibilidade !== 'EM_FALTA'
+  }
 }
 
 function acharProduto(banco, id) {
@@ -177,10 +183,19 @@ export const mockCatalogo = {
   }
 }
 
+const vendasAtivas = (banco) => banco.vendas.filter((v) => v.situacao !== 'excluido')
+
 export const mockVendas = {
   async listar() {
     await simularRede()
-    return copia(lerBanco().vendas).sort((a, b) => b.id - a.id)
+    return copia(vendasAtivas(lerBanco())).sort((a, b) => b.id - a.id)
+  },
+  async excluir(id) {
+    await simularRede()
+    // RF10: exclusão lógica, o registro da venda é preservado.
+    acharVenda(lerBanco(), id).situacao = 'excluido'
+    salvarBanco()
+    return null
   },
   async buscar(id) {
     await simularRede()
@@ -243,7 +258,7 @@ export const mockVendas = {
 export const mockRelatorios = {
   async vendas(inicio, fim) {
     await simularRede()
-    const linhas = lerBanco().vendas
+    const linhas = vendasAtivas(lerBanco())
       .filter((v) => v.dataPedido >= inicio && v.dataPedido <= fim)
       .sort((a, b) => b.dataPedido.localeCompare(a.dataPedido) || b.id - a.id)
       .map((v) => ({
@@ -256,5 +271,53 @@ export const mockRelatorios = {
         lucro: v.valorTotal - v.custo
       }))
     return { linhas }
+  },
+
+  async estoque() {
+    await simularRede()
+    const linhas = lerBanco().insumos.map((i) => ({
+      insumo: i.nome,
+      unidade: i.unidade,
+      estoqueAtual: i.saldo,
+      estoqueMinimo: i.minimo,
+      custoUnitario: i.custoMedio,
+      valorUltimaCompra: 0,
+      quantidadeUltimaCompra: 0,
+      dataUltimaCompra: null,
+      abaixoDoMinimo: i.saldo < i.minimo,
+      semCusto: !i.custoMedio
+    }))
+    return { linhas }
+  },
+
+  async lucro(inicio, fim) {
+    const { linhas } = await this.vendas(inicio, fim)
+    const porProduto = {}
+    linhas.forEach((l) => {
+      const p = porProduto[l.item] || (porProduto[l.item] = { produto: l.item, quantidade: 0, faturamento: 0, custo: 0 })
+      p.quantidade += 1
+      p.faturamento += l.venda
+      p.custo += l.custo
+    })
+    const margem = (lucro, faturamento) => (faturamento ? (lucro / faturamento) * 100 : 0)
+    const produtos = Object.values(porProduto).map((p) => ({ ...p, lucro: p.faturamento - p.custo, margem: margem(p.faturamento - p.custo, p.faturamento) }))
+    const faturamento = produtos.reduce((s, p) => s + p.faturamento, 0)
+    const custo = produtos.reduce((s, p) => s + p.custo, 0)
+    return {
+      id: produtos.length ? Date.now() : null,
+      inicio,
+      fim,
+      dataApuracao: new Date().toISOString().slice(0, 10),
+      faturamento,
+      custo,
+      lucro: faturamento - custo,
+      margem: margem(faturamento - custo, faturamento),
+      produtos
+    }
+  },
+
+  async historicoLucro() {
+    await simularRede()
+    return []
   }
 }

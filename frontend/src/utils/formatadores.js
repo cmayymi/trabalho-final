@@ -12,6 +12,17 @@ export function moedaCurta(valor) {
     : moeda(numero)
 }
 
+// Preço com a forma de venda: "R$ 80 /kg" (por peso) ou "R$ 3,50 /un" (por unidade).
+export function precoComUnidade(produto) {
+  const sufixo = { peso: ' /kg', unidade: ' /un' }[produto.tipoVenda] || ''
+  return moedaCurta(produto.precoBase) + sufixo
+}
+
+// Rota da tela "em desenvolvimento" para funções que ainda não existem no backend.
+export function emDesenvolvimento(funcionalidade) {
+  return { name: 'em-breve', query: { funcionalidade } }
+}
+
 export function dataLonga(iso) {
   if (!iso) return '—'
   const [ano, mes, dia] = iso.slice(0, 10).split('-')
