@@ -2,21 +2,37 @@
 
 Interface web do Sistema Betina Cozinha (SBC), feita com **Vue.js 3, Vue CLI, Webpack e Bootstrap 5**.
 
-## Casos de uso implementados
+## Casos de uso implementados (ligados ao backend)
 
-| Caso de uso | Requisito | Onde está |
-| --- | --- | --- |
-| Autenticar-se no Sistema | RF05 | `src/views/LoginView.vue`, `src/router/index.js` |
-| Consultar Catálogo e Aplicar Filtros | RF03, RF11 | `src/views/catalogo/` |
-| Registrar Venda | RF02 | `src/views/vendas/` |
-| Gerar e Exportar Relatório de Vendas | RF01 | `src/views/relatorios/`, `src/utils/exportacao.js` |
+| Caso de uso | Requisitos | Telas (boundary) | Rotas do backend |
+| --- | --- | --- | --- |
+| UC6 Autenticar-se no Sistema | RF05 | `LoginView.vue` (TelaAutenticacao) | `POST /api/login` |
+| UC9 Consultar Catálogo | RF03, RF04 (disponibilidade), RF07 (preço) | `CatalogoView.vue` (TelaCatalogo), `ProdutoDetalheView.vue` (TelaDetalheProduto) | `GET /api/produtos`, `GET /api/produtos/:id` |
+| UC2 Registrar Venda | RF02, RF07, RF08 (custo gravado na venda) | `VendaFormView.vue`, `VendasView.vue`, `VendaDetalheView.vue` | `POST`, `GET /api/pedidos` |
+| UC1 Gerar Relatório de Vendas | RF01, RF08, RF09 (custo, lucro e margem) | `RelatorioVendasView.vue` | `GET /api/relatorios/vendas` |
 
-Estoque, configurações, preços e os demais relatórios aparecem no menu como "ainda não disponível".
+## Funcionalidades extras ligadas ao backend
+
+| Funcionalidade | Requisito | Telas | Rotas do backend |
+| --- | --- | --- | --- |
+| Editar pedido, marcar como pago e excluir pedido | RF10 | `VendaFormView.vue`, `VendasView.vue`, `VendaDetalheView.vue` | `PUT`, `DELETE /api/pedidos/:id` |
+| Relatório de estoque e alertas de estoque crítico | RF01, RF04 | `RelatorioEstoqueView.vue`, `InicioView.vue` | `GET /api/relatorios/estoque` |
+| Relatório de lucro e histórico de apurações | RF09, RF08 | `RelatorioLucroView.vue` | `POST /api/relatorios/lucro`, `GET /api/relatorios/lucro/historico` |
+
+## Em desenvolvimento
+
+Estas telas existem no protótipo, mas o backend ainda não tem as rotas. No site, elas abrem uma página "Em desenvolvimento":
+
+- Cadastrar, editar e excluir produto (RF11)
+- Gerenciar preços (RF07)
+- Controle de estoque e movimentações (RF04, RF12)
+- Custos e margens (tela própria do RF08)
+- Configurações e alteração de senha (RF05)
+- Importar pedido do WhatsApp (RF06)
 
 ## Requisitos
 
-- Node.js 20 ou superior para o frontend.
-- Node.js 22 ou superior para o backend, por causa do `better-sqlite3` 13.
+- Node.js 22 ou superior.
 
 ## Como executar
 
@@ -26,29 +42,23 @@ Dentro da pasta `frontend`:
 npm install
 ```
 
-```bash
-npm run serve
-```
+### Com o backend (modo usado na entrega)
 
-Abra `http://localhost:8080`. Nesse modo todos os módulos usam dados de teste, e a tela de login mostra a usuária e a senha de demonstração.
-
-Para testar as mensagens de erro, rode no console do navegador `localStorage.setItem('sbc.mock.falha', '1')`. Para voltar ao normal, use `localStorage.removeItem('sbc.mock.falha')`.
-
-### Com o backend real
-
-Com o backend ligado na porta 3000:
+Com o backend ligado na porta 3000 (veja o README da raiz):
 
 ```bash
 npm run serve:integracao
 ```
 
-O login passa a usar `POST /api/login` e o registro de vendas usa `/api/pedidos`, gravando no banco SQLite. Catálogo e relatório seguem com dados de teste.
+Abra `http://localhost:8080` e entre com a usuária cadastrada em `backend/database/seed.js`.
 
-Para a venda funcionar, a tabela `produtos` do banco precisa ter os produtos do catálogo de teste, com os mesmos IDs. Dentro da pasta `backend`, rode uma vez:
+### Modo demonstração (sem backend)
 
 ```bash
-node database/seed-produtos.js
+npm run serve
 ```
+
+Todos os dados são de teste e guardados no navegador. O login é `betina`, com a senha `betina123`. Para testar as mensagens de erro, rode no console do navegador `localStorage.setItem('sbc.mock.falha', '1')`; para voltar ao normal, `localStorage.removeItem('sbc.mock.falha')`.
 
 ### Versão final
 
@@ -58,18 +68,26 @@ npm run build
 
 Os arquivos são gerados em `dist/`.
 
-## Como ligar um módulo ao backend
+## Configuração dos módulos
 
-Quando uma rota ficar pronta seguindo [docs/CONTRATO-API.md](docs/CONTRATO-API.md), troque a variável do módulo para `false` em `.env.integracao`, `.env.development` e `.env.production`. As telas não precisam mudar.
+Os arquivos `.env.*` definem, módulo a módulo, se o site usa dados de teste (`true`) ou o backend (`false`):
 
-| Variável | Módulo |
-| --- | --- |
-| `VUE_APP_MOCK_AUTH` | Login |
-| `VUE_APP_MOCK_CATALOGO` | Catálogo e insumos |
-| `VUE_APP_MOCK_VENDAS` | Vendas |
-| `VUE_APP_MOCK_RELATORIOS` | Relatório de vendas |
+| Variável | Módulo | `.env.integracao` |
+| --- | --- | --- |
+| `VUE_APP_MOCK_AUTH` | Login | `false` |
+| `VUE_APP_MOCK_CATALOGO` | Catálogo | `false` |
+| `VUE_APP_MOCK_VENDAS` | Vendas | `false` |
+| `VUE_APP_MOCK_RELATORIOS` | Relatórios | `false` |
 
-Por padrão o proxy envia `/api` para `http://localhost:3000`. Para outro endereço, defina a variável de ambiente `BACKEND_URL`.
+O proxy envia `/api` para `http://localhost:3000`. Para outro endereço, defina a variável de ambiente `BACKEND_URL`.
+
+## Conversões feitas pelo frontend
+
+O backend guarda os valores em centavos e o peso em gramas. A pasta `src/services/` converte para reais e quilos:
+
+- `catalogo.js`: preço do produto e ficha técnica. Produtos com `tipoVenda` igual a `peso` (como bolos) têm preço e ficha por kg; os demais, por unidade.
+- `vendas.js`: cada item é enviado com o `id` do produto, a quantidade e, para produtos por peso, o peso de cada item em gramas.
+- `relatorios.js`: valores de venda, custo, lucro e custo médio dos insumos.
 
 ## Estrutura
 
@@ -83,10 +101,3 @@ src/
   utils/        formatação e exportação de PDF e CSV
   views/        telas do sistema
 ```
-
-## Funcionalidades por parte
-
-- **Autenticação:** valida os campos, informa credenciais inválidas e servidor indisponível, guarda o token na sessão da aba e protege todas as rotas. Ao expirar, volta para o login.
-- **Catálogo:** busca sem diferenciar acentos, filtros por categoria, massa e cobertura, detalhes com ficha técnica, cadastro, edição e exclusão.
-- **Vendas:** lista com busca e filtros, registro com validação, cálculo do valor, verificação de ingredientes, resumo para confirmação, consulta e edição.
-- **Relatório de vendas:** períodos mensal, semestral, anual e personalizado, totais de venda, custo, lucro e margem, além de PDF, CSV e impressão.

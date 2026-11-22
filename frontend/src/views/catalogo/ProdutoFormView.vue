@@ -1,7 +1,10 @@
 <template>
   <CabecalhoPagina :titulo="editando ? 'Editar produto' : 'Cadastrar produto'" subtitulo="Dados do catálogo e ficha técnica" />
 
-  <EstadoPagina v-if="carregando" tipo="carregando" titulo="Carregando…" />
+  <EstadoPagina v-if="!catalogo.gerenciavel" icone="bi-tools" titulo="Em desenvolvimento" texto="O cadastro e a edição de produtos (RF11) ainda não estão disponíveis no servidor.">
+    <router-link class="btn btn-branco" :to="{ name: 'catalogo' }">Voltar ao catálogo</router-link>
+  </EstadoPagina>
+  <EstadoPagina v-else-if="carregando" tipo="carregando" titulo="Carregando…" />
   <EstadoPagina v-else-if="erroCarga" tipo="erro" icone="bi-cloud-slash" titulo="Não foi possível abrir o formulário" :texto="erroCarga">
     <router-link class="btn btn-branco" :to="{ name: 'catalogo' }">Voltar ao catálogo</router-link>
   </EstadoPagina>
@@ -155,6 +158,7 @@ const opcoesMassa = computed(() => [...new Set(produtos.value.map((p) => p.massa
 const opcoesCobertura = computed(() => [...new Set(produtos.value.map((p) => p.cobertura).filter(Boolean))])
 
 onMounted(async () => {
+  if (!catalogo.gerenciavel) return // RF11 ainda não existe no backend
   try {
     const [listaInsumos, listaProdutos, produto] = await Promise.all([
       catalogo.listarInsumos(),

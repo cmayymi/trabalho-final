@@ -12,18 +12,17 @@
     </div>
   </section>
 
-  <router-link class="btn btn-ambar" :to="emBreve('Custos e margens')">Custos e margens</router-link>
+  <router-link class="btn btn-ambar" :to="emDesenvolvimento('Custos e margens')">Custos e margens</router-link>
 </template>
 
 <script setup>
 import CabecalhoPagina from '@/components/layout/CabecalhoPagina.vue'
-
-const emBreve = (funcionalidade) => ({ name: 'em-breve', query: { funcionalidade } })
+import { emDesenvolvimento } from '@/utils/formatadores'
 
 const relatorios = [
   { titulo: 'Relatório de vendas', descricao: 'Vendas, custos e lucro por período', destino: { name: 'relatorio-vendas' } },
-  { titulo: 'Relatório de estoque', descricao: 'Saldo atual, mínimo e custo médio', destino: emBreve('Relatório de estoque') },
-  { titulo: 'Relatório de lucro', descricao: 'Filtros avançados e rentabilidade', destino: emBreve('Relatório de lucro') }
+  { titulo: 'Relatório de estoque', descricao: 'Saldo atual, mínimo e custo médio', destino: { name: 'relatorio-estoque' } },
+  { titulo: 'Relatório de lucro', descricao: 'Faturamento, custos, lucro e margem por produto', destino: { name: 'relatorio-lucro' } }
 ]
 </script>
 

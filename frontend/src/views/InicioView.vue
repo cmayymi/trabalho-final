@@ -22,18 +22,18 @@
         <router-link class="btn btn-ambar w-100 atalho" :to="{ name: 'venda-nova' }">+ Registrar venda</router-link>
       </div>
       <div class="col-12 col-md-4">
-        <router-link class="btn btn-branco w-100 atalho" :to="{ name: 'produto-novo' }">+ Novo produto</router-link>
+        <router-link class="btn btn-branco w-100 atalho" :to="catalogo.gerenciavel ? { name: 'produto-novo' } : emDesenvolvimento('Cadastro de produtos')">+ Novo produto</router-link>
       </div>
       <div class="col-12 col-md-4">
-        <router-link class="btn btn-branco w-100 atalho" :to="{ name: 'em-breve', query: { funcionalidade: 'Movimentar estoque' } }">+ Movimentar estoque</router-link>
+        <router-link class="btn btn-branco w-100 atalho" :to="emDesenvolvimento('Movimentar estoque')">+ Movimentar estoque</router-link>
       </div>
     </div>
 
     <h2 class="titulo-secao">Alertas</h2>
     <div v-if="criticos.length" class="d-grid gap-2">
-      <div v-for="insumo in criticos" :key="insumo.id" class="alerta-sbc">
+      <div v-for="insumo in criticos" :key="insumo.insumo" class="alerta-sbc">
         <i class="bi bi-exclamation-triangle me-2" aria-hidden="true"></i>
-        {{ insumo.nome }} atingiu o estoque mínimo. Saldo atual: {{ numeroBR(insumo.saldo) }} {{ insumo.unidade }}.
+        {{ insumo.insumo }} está abaixo do estoque mínimo. Saldo atual: {{ numeroBR(insumo.estoqueAtual) }} {{ insumo.unidade }}.
       </div>
     </div>
     <p v-else class="texto-suave">Nenhum alerta no momento. O estoque está em dia.</p>
@@ -46,18 +46,22 @@ import CabecalhoPagina from '@/components/layout/CabecalhoPagina.vue'
 import EstadoPagina from '@/components/comum/EstadoPagina.vue'
 import catalogo from '@/services/catalogo'
 import vendasApi from '@/services/vendas'
-import { hojeISO, moedaCurta, numeroBR } from '@/utils/formatadores'
+import relatorios from '@/services/relatorios'
+import { emDesenvolvimento, hojeISO, moedaCurta, numeroBR } from '@/utils/formatadores'
 
 const carregando = ref(true)
 const erro = ref('')
 const vendas = ref([])
 const insumos = ref([])
 
+// Vendas vêm de /api/pedidos (RF02) e os alertas, do relatório de estoque (RF01/RF04).
 async function carregar() {
   carregando.value = true
   erro.value = ''
   try {
-    ;[vendas.value, insumos.value] = await Promise.all([vendasApi.listar(), catalogo.listarInsumos()])
+    const [listaVendas, estoque] = await Promise.all([vendasApi.listar(), relatorios.estoque()])
+    vendas.value = listaVendas
+    insumos.value = estoque.linhas
   } catch (falha) {
     erro.value = falha.message
   } finally {
@@ -67,7 +71,7 @@ async function carregar() {
 
 onMounted(carregar)
 
-const criticos = computed(() => insumos.value.filter((i) => i.status !== 'OK'))
+const criticos = computed(() => insumos.value.filter((i) => i.abaixoDoMinimo))
 
 const indicadores = computed(() => {
   const hoje = hojeISO()

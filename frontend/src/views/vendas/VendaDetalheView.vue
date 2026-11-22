@@ -5,7 +5,7 @@
   </EstadoPagina>
 
   <template v-else>
-    <CabecalhoPagina :titulo="`Pedido #${venda.id}`" subtitulo="Detalhes do pedido" />
+    <CabecalhoPagina :titulo="`Pedido #${venda.id}`" subtitulo="Detalhes, edição e exclusão do pedido" />
 
     <section class="cartao p-4 p-md-5 detalhe">
       <h2 class="fs-2 mb-1">{{ venda.cliente }}</h2>
@@ -22,25 +22,37 @@
 
       <div class="d-flex flex-wrap gap-3">
         <router-link v-if="vendasApi.podeEditar" class="btn btn-ambar" :to="{ name: 'venda-editar', params: { id: venda.id } }">Editar pedido</router-link>
+        <button v-if="vendasApi.podeEditar" class="btn btn-branco" type="button" @click="modal.abrir()">Excluir</button>
         <router-link class="btn btn-branco" :to="{ name: 'vendas' }">Voltar</router-link>
       </div>
     </section>
+
+    <!-- RF10: a exclusão é lógica, o registro da venda é preservado no histórico -->
+    <ModalConfirmacao ref="modal" titulo="Excluir pedido?" texto-confirmar="Excluir" perigo :ocupado="excluindo" @confirmar="excluir">
+      <p class="mb-1">O pedido <strong>#{{ venda.id }}</strong> de {{ venda.cliente }} sairá da lista de vendas.</p>
+      <p class="texto-suave mb-0">A operação será registrada no histórico.</p>
+    </ModalConfirmacao>
   </template>
 </template>
 
 <script setup>
 import { computed, onMounted, ref } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import CabecalhoPagina from '@/components/layout/CabecalhoPagina.vue'
 import EstadoPagina from '@/components/comum/EstadoPagina.vue'
 import EtiquetaStatus from '@/components/comum/EtiquetaStatus.vue'
+import ModalConfirmacao from '@/components/comum/ModalConfirmacao.vue'
 import vendasApi from '@/services/vendas'
+import { avisar } from '@/composables/avisos'
 import { dataLonga, moeda, numeroBR } from '@/utils/formatadores'
 
 const rota = useRoute()
+const router = useRouter()
 const venda = ref(null)
 const carregando = ref(true)
 const erro = ref('')
+const modal = ref(null)
+const excluindo = ref(false)
 
 onMounted(async () => {
   try {
@@ -55,12 +67,27 @@ onMounted(async () => {
 const campos = computed(() => [
   { rotulo: 'Produto', valor: venda.value.produto },
   { rotulo: 'Quantidade', valor: venda.value.quantidade },
-  { rotulo: 'Peso', valor: `${numeroBR(venda.value.peso)} kg` },
+  ...(venda.value.peso > 0 ? [{ rotulo: 'Peso', valor: `${numeroBR(venda.value.peso)} kg` }] : []),
   { rotulo: 'Data do pedido', valor: dataLonga(venda.value.dataPedido) },
   { rotulo: 'Entrega', valor: dataLonga(venda.value.dataEntrega) },
   { rotulo: 'Descrição', valor: venda.value.descricao || '—' },
   { rotulo: 'Valor', valor: moeda(venda.value.valorTotal) }
 ])
+
+async function excluir() {
+  excluindo.value = true
+  try {
+    await vendasApi.excluir(venda.value.id)
+    await modal.value.fechar()
+    avisar.sucesso(`Pedido #${venda.value.id} excluído.`)
+    router.push({ name: 'vendas' })
+  } catch (falha) {
+    await modal.value.fechar()
+    avisar.erro(falha.message)
+  } finally {
+    excluindo.value = false
+  }
+}
 </script>
 
 <style scoped>
