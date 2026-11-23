@@ -11,6 +11,7 @@ class CadastroPedido {
         const salvar = db.transaction(() => {
             const pedidosID = this.#inserirPedido(pedido);
             pedido.getItens().forEach((item) => this.#inserirItem(pedidosID, item));
+            this.#aplicarAjusteEstoque(ajustesEstoque);
             return pedidosID;
         });
         return salvar();
@@ -69,7 +70,7 @@ class CadastroPedido {
 
     // edita o pedido inteiro (cabeçalho + itens) de uma vez
     // recebe um Pedido já com o id e os dados novos, lanca erro se o pedido nao existir
-    atualizarPedidoCompleto(pedido) {
+    atualizarPedidoCompleto(pedido, ajustesEstoque = {}) {
         const atualizar = db.transaction(() => {
             const pedidosID = pedido.getId();
 
@@ -88,6 +89,7 @@ class CadastroPedido {
             // troca os itens: apaga os antigos e insere os novos
             this.#apagarItens(pedidosID);
             pedido.getItens().forEach((item) => this.#inserirItem(pedidosID, item));
+            this.#aplicarAjusteEstoque(ajustesEstoque);
         });
         atualizar();
     }
@@ -113,6 +115,16 @@ class CadastroPedido {
             return true;
         });
         return excluir();
+    }
+
+    // positivo = baixa, negativo = devolução; sempre chamar dentro de uma transação
+    #aplicarAjusteEstoque(ajustes) {
+        const atualiza = db.prepare('UPDATE Ingrediente SET quantidadeEstoque = quantidadeEstoque - ? WHERE id = ?');
+        for (const [ingredienteId, quantidade] of Object.entries(ajustes)) {
+            if (quantidade !== 0) {
+                atualiza.run(quantidade, Number(ingredienteId));
+            }
+        }
     }
 
     // grava no historico o estado ANTERIOR do pedido
