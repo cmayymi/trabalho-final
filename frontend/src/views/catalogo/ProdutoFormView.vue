@@ -1,7 +1,7 @@
 <template>
   <CabecalhoPagina :titulo="editando ? 'Editar produto' : 'Cadastrar produto'" subtitulo="Dados do catálogo e ficha técnica" />
 
-  <EstadoPagina v-if="!catalogo.gerenciavel" icone="bi-tools" titulo="Em desenvolvimento" texto="O cadastro e a edição de produtos (RF11) ainda não estão disponíveis no servidor.">
+  <EstadoPagina v-if="!catalogo.gerenciavel" icone="bi-tools" titulo="Em desenvolvimento" texto="O cadastro e a edição de produtos ainda não estão disponíveis no servidor.">
     <router-link class="btn btn-branco" :to="{ name: 'catalogo' }">Voltar ao catálogo</router-link>
   </EstadoPagina>
   <EstadoPagina v-else-if="carregando" tipo="carregando" titulo="Carregando…" />
@@ -13,12 +13,20 @@
     <div v-if="erroEnvio" class="alert alert-danger" role="alert">O produto não foi salvo. {{ erroEnvio }}</div>
 
     <div class="row g-3 mb-3">
-      <div class="col-12 col-lg-5">
+      <div class="col-12" :class="catalogo.camposExtras ? 'col-lg-3' : 'col-lg-6'">
         <label class="form-label" for="nome">Nome</label>
         <input id="nome" v-model="form.nome" class="form-control" :class="{ 'is-invalid': erros.nome }" maxlength="80" />
         <div class="invalid-feedback">{{ erros.nome }}</div>
       </div>
-      <div class="col-12 col-sm-6 col-lg-3">
+      <div class="col-12 col-sm-6" :class="catalogo.camposExtras ? 'col-lg-2' : 'col-lg-3'">
+        <label class="form-label" for="tipo-venda">Forma de venda</label>
+        <select id="tipo-venda" v-model="form.tipoVenda" class="form-select" :class="{ 'is-invalid': erros.tipoVenda }">
+          <option value="unidade">Por unidade</option>
+          <option value="peso">Por kg</option>
+        </select>
+        <div class="invalid-feedback">{{ erros.tipoVenda }}</div>
+      </div>
+      <div v-if="catalogo.camposExtras" class="col-12 col-sm-6 col-lg-3">
         <label class="form-label" for="categoria">Categoria</label>
         <select id="categoria" v-model="form.categoria" class="form-select" :class="{ 'is-invalid': erros.categoria }">
           <option value="" disabled>Selecione</option>
@@ -26,7 +34,7 @@
         </select>
         <div class="invalid-feedback">{{ erros.categoria }}</div>
       </div>
-      <div class="col-6 col-lg-2">
+      <div v-if="catalogo.camposExtras" class="col-6 col-lg-2">
         <label class="form-label" for="peso">Peso padrão</label>
         <div class="input-group has-validation">
           <input id="peso" v-model.number="form.peso" type="number" min="0" step="0.1" class="form-control" :class="{ 'is-invalid': erros.peso }" />
@@ -34,14 +42,14 @@
           <div class="invalid-feedback">{{ erros.peso }}</div>
         </div>
       </div>
-      <div class="col-6 col-sm-12 col-lg-2">
-        <label class="form-label" for="preco">Preço base</label>
+      <div class="col-6 col-sm-12" :class="catalogo.camposExtras ? 'col-lg-2' : 'col-lg-3'">
+        <label class="form-label" for="preco">{{ form.tipoVenda === 'peso' ? 'Preço por kg' : 'Preço por unidade' }}</label>
         <CampoMoeda id="preco" v-model="form.precoBase" :class="{ 'is-invalid': erros.precoBase }" />
         <div class="invalid-feedback">{{ erros.precoBase }}</div>
       </div>
     </div>
 
-    <div class="row g-3 mb-3">
+    <div v-if="catalogo.camposExtras" class="row g-3 mb-3">
       <div class="col-12 col-sm-6">
         <label class="form-label" for="massa">Tipo de massa</label>
         <input id="massa" v-model="form.massa" class="form-control" list="opcoes-massa" maxlength="40" placeholder="Ex.: Chocolate" />
@@ -55,12 +63,12 @@
     </div>
 
     <div class="row g-3 mb-4">
-      <div class="col-12 col-lg-9">
+      <div class="col-12" :class="{ 'col-lg-9': catalogo.camposExtras }">
         <label class="form-label" for="descricao">Descrição</label>
         <textarea id="descricao" v-model="form.descricao" class="form-control" :class="{ 'is-invalid': erros.descricao }" rows="3" maxlength="400"></textarea>
         <div class="invalid-feedback">{{ erros.descricao }}</div>
       </div>
-      <div class="col-12 col-lg-3">
+      <div v-if="catalogo.camposExtras" class="col-12 col-lg-3">
         <span class="form-label d-block">Foto do produto</span>
         <label class="foto-campo" :class="{ 'foto-vazia': !form.foto }">
           <img v-if="form.foto" :src="form.foto" alt="Pré-visualização da foto" />
@@ -71,7 +79,7 @@
       </div>
     </div>
 
-    <h2 class="titulo-secao">Ficha técnica</h2>
+    <h2 class="titulo-secao">Ficha técnica {{ form.tipoVenda === 'peso' ? '(para 1 kg)' : '(para 1 unidade)' }}</h2>
     <div class="row g-3">
       <div class="col-12 col-xl-10">
         <div class="table-responsive">
@@ -89,9 +97,11 @@
                 </td>
                 <td><input v-model.number="item.quantidade" type="number" min="0" step="any" class="form-control" :aria-label="`Quantidade do ingrediente ${indice + 1}`" /></td>
                 <td>
-                  <select v-model="item.unidade" class="form-select" :aria-label="`Unidade do ingrediente ${indice + 1}`">
+                  <select v-if="catalogo.camposExtras" v-model="item.unidade" class="form-select" :aria-label="`Unidade do ingrediente ${indice + 1}`">
                     <option v-for="u in unidadesDe(item)" :key="u" :value="u">{{ u }}</option>
                   </select>
+                  <!-- No banco, a quantidade da ficha fica na própria unidade do ingrediente. -->
+                  <span v-else>{{ insumoDe(item)?.unidade || '—' }}</span>
                 </td>
                 <td class="text-center"><EtiquetaStatus v-if="item.insumoId" :status="statusDe(item)" /></td>
                 <td class="text-center">
@@ -151,14 +161,14 @@ const erros = reactive({})
 let proximaChave = 1
 
 const form = reactive({
-  nome: '', categoria: '', massa: '', cobertura: '', peso: null, precoBase: 0, descricao: '', foto: null, fichaTecnica: []
+  nome: '', tipoVenda: 'unidade', categoria: '', massa: '', cobertura: '', peso: null, precoBase: 0, descricao: '', foto: null, fichaTecnica: []
 })
 
 const opcoesMassa = computed(() => [...new Set(produtos.value.map((p) => p.massa).filter(Boolean))])
 const opcoesCobertura = computed(() => [...new Set(produtos.value.map((p) => p.cobertura).filter(Boolean))])
 
 onMounted(async () => {
-  if (!catalogo.gerenciavel) return // RF11 ainda não existe no backend
+  if (!catalogo.gerenciavel) return
   try {
     const [listaInsumos, listaProdutos, produto] = await Promise.all([
       catalogo.listarInsumos(),
@@ -189,6 +199,10 @@ function adicionarIngrediente() {
 }
 
 function ajustarUnidade(item) {
+  if (!catalogo.camposExtras) {
+    item.unidade = insumoDe(item)?.unidade
+    return
+  }
   const unidades = unidadesDe(item)
   if (!unidades.includes(item.unidade)) item.unidade = unidades[0]
 }
@@ -196,7 +210,9 @@ function ajustarUnidade(item) {
 function statusDe(item) {
   const insumo = insumoDe(item)
   if (!insumo) return 'FALTA'
-  const necessario = (Number(item.quantidade) || 0) * (FATOR[item.unidade] ?? 1)
+  // Na demonstração a ficha pode usar g/ml com o saldo em kg/l; no banco a unidade é sempre a do ingrediente.
+  const fator = catalogo.camposExtras ? FATOR[item.unidade] ?? 1 : 1
+  const necessario = (Number(item.quantidade) || 0) * fator
   if (insumo.saldo < necessario) return 'FALTA'
   return insumo.status === 'OK' ? 'OK' : 'CRITICO'
 }
@@ -204,9 +220,10 @@ function statusDe(item) {
 function validar() {
   Object.keys(erros).forEach((chave) => delete erros[chave])
   if (!form.nome.trim()) erros.nome = 'Informe o nome do produto.'
-  if (!form.categoria) erros.categoria = 'Selecione a categoria.'
-  if (!(form.peso > 0)) erros.peso = 'Informe um peso válido.'
-  if (!(form.precoBase > 0)) erros.precoBase = 'Informe o preço base.'
+  if (!['unidade', 'peso'].includes(form.tipoVenda)) erros.tipoVenda = 'Escolha a forma de venda.'
+  if (catalogo.camposExtras && !form.categoria) erros.categoria = 'Selecione a categoria.'
+  if (catalogo.camposExtras && !(form.peso > 0)) erros.peso = 'Informe um peso válido.'
+  if (!(form.precoBase > 0)) erros.precoBase = 'Informe o preço.'
   if (!form.descricao.trim()) erros.descricao = 'Descreva o produto.'
 
   const fichaIncompleta = form.fichaTecnica.some((i) => !i.insumoId || !(i.quantidade > 0))
@@ -250,6 +267,7 @@ async function salvar() {
 
   const dados = {
     nome: form.nome.trim(),
+    tipoVenda: form.tipoVenda,
     categoria: form.categoria,
     massa: form.massa.trim(),
     cobertura: form.cobertura.trim(),
@@ -271,7 +289,7 @@ async function salvar() {
       ? await catalogo.atualizarProduto(rota.params.id, dados)
       : await catalogo.criarProduto(dados)
     avisar.sucesso('Produto salvo com sucesso.')
-    router.push({ name: 'produto-detalhe', params: { id: salvo.id } })
+    router.push(salvo?.id ? { name: 'produto-detalhe', params: { id: salvo.id } } : { name: 'catalogo' })
   } catch (falha) {
     erroEnvio.value = falha.message
     window.scrollTo({ top: 0, behavior: 'smooth' })

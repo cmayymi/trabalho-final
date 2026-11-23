@@ -34,11 +34,29 @@ Corpo: `{ "login": "...", "senha": "..." }` → `200 { "token": "<jwt>" }`, `400
 ]
 ```
 
-- `tipoVenda`: `unidade` (preço de 1 unidade) ou `peso` (preço e ficha técnica de 1 kg). **O backend ainda precisa incluir este campo em `converterProdutoJSON`**; sem ele, o frontend trata todos os produtos como vendidos por unidade.
+- `tipoVenda`: `unidade` (preço de 1 unidade) ou `peso` (preço e ficha técnica de 1 kg).
 
 ### `GET /api/produtos/:id`
 
 `{ "produto": { ...igual ao item acima }, "ficha": { "itens": [...] }, "ingredientesDisp": true }`
+
+### Gerenciar Produto (extensão do UC9)
+
+| Rota | Descrição |
+| --- | --- |
+| `GET /api/ingredientes` | Lista `{ id, nome, unidadeMedida, quantidadeEstoque, estoqueMinimo, ... }` para montar a ficha técnica |
+| `POST /api/produtos` | Cadastra; responde `201 { mensagem }` (sem o `id`: o frontend procura o produto novo pelo nome) |
+| `PUT /api/produtos/:id` | Atualiza o produto e troca os itens da ficha |
+| `DELETE /api/produtos/:id` | Exclui; responde `409` se o produto já tiver vendas |
+
+Corpo de `POST` e `PUT`:
+
+```json
+{ "nome": "Bolo de cenoura", "descricao": "...", "preco": 7000, "tipoVenda": "peso",
+  "ingredientes": [{ "ingredienteId": 4, "quantidade": 300 }] }
+```
+
+- `preco` em centavos. `quantidade` na unidade do ingrediente, para 1 unidade ou 1 kg do produto, conforme `tipoVenda`.
 
 ## Vendas (UC2, RF02 e RF10)
 
@@ -95,6 +113,5 @@ Resposta de um pedido:
 
 ## Ainda não existe no backend
 
-- Rotas de cadastrar, editar e excluir produto (RF11), de preços (RF07), de estoque e movimentações (RF04, RF12) e de alteração de senha.
-- Baixa automática no estoque ao registrar uma venda (UC4, incluído no UC2).
+- Rotas de preços (RF07), de movimentações de estoque (RF12) e de alteração de senha.
 - Exigência de token nas rotas `/api/pedidos` e `/api/relatorios`.

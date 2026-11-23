@@ -38,17 +38,63 @@ function produtoDeBackend(produto, ingredientesDisp) {
   }
 }
 
-const real = {
-  // Cadastrar, editar e excluir produto (RF11) e os filtros por categoria ainda não existem no backend.
-  gerenciavel: false,
-  filtrosAvancados: false,
-  listarProdutos: async () => (await requisicao('/produtos')).map((p) => produtoDeBackend(p)),
-  buscarProduto: async (id) => {
-    const resposta = await requisicao(`/produtos/${id}`)
-    return produtoDeBackend(resposta.produto, resposta.ingredientesDisp)
+// Ingrediente do backend (/api/ingredientes) -> formato usado pelo formulário de produto
+function ingredienteDeBackend(ingrediente) {
+  const saldo = Number(ingrediente.quantidadeEstoque) || 0
+  const minimo = Number(ingrediente.estoqueMinimo) || 0
+  return {
+    id: ingrediente.id,
+    nome: ingrediente.nome,
+    unidade: ingrediente.unidadeMedida,
+    saldo,
+    status: saldo > minimo ? 'OK' : 'CRITICO'
   }
 }
 
-const mock = { ...mockCatalogo, gerenciavel: true, filtrosAvancados: true }
+// Dados do formulário -> corpo esperado por POST/PUT /api/produtos.
+// As quantidades da ficha já estão na unidade do ingrediente (para 1 unidade ou 1 kg do produto).
+function produtoParaBackend(dados) {
+  return {
+    nome: dados.nome,
+    descricao: dados.descricao,
+    preco: Math.round(dados.precoBase * 100),
+    tipoVenda: dados.tipoVenda,
+    ingredientes: dados.fichaTecnica.map((item) => ({ ingredienteId: item.insumoId, quantidade: item.quantidade }))
+  }
+}
+
+async function listarProdutos() {
+  return (await requisicao('/produtos')).map((p) => produtoDeBackend(p))
+}
+
+const real = {
+  // Gerenciar Produto (extensão do UC9): cadastro, edição e exclusão pelas rotas de /api/produtos.
+  gerenciavel: true,
+  // Os campos extras do protótipo (categoria, massa, cobertura, peso padrão e foto) e os filtros
+  // por categoria não existem no banco.
+  filtrosAvancados: false,
+  camposExtras: false,
+  // O backend recusa a exclusão de produtos que já foram vendidos.
+  bloqueiaExclusaoComVendas: true,
+  listarProdutos,
+  buscarProduto: async (id) => {
+    const resposta = await requisicao(`/produtos/${id}`)
+    return produtoDeBackend(resposta.produto, resposta.ingredientesDisp)
+  },
+  listarInsumos: async () => (await requisicao('/ingredientes')).map(ingredienteDeBackend),
+  criarProduto: async (dados) => {
+    await requisicao('/produtos', { metodo: 'POST', corpo: produtoParaBackend(dados) })
+    // O POST não devolve o id; o produto novo é o de maior id com esse nome.
+    const candidatos = (await listarProdutos()).filter((p) => p.nome === dados.nome)
+    return candidatos.reduce((maior, p) => (p.id > maior.id ? p : maior), candidatos[0] || { id: null })
+  },
+  atualizarProduto: async (id, dados) => {
+    await requisicao(`/produtos/${id}`, { metodo: 'PUT', corpo: produtoParaBackend(dados) })
+    return { id: Number(id) }
+  },
+  excluirProduto: (id) => requisicao(`/produtos/${id}`, { metodo: 'DELETE' })
+}
+
+const mock = { ...mockCatalogo, gerenciavel: true, filtrosAvancados: true, camposExtras: true, bloqueiaExclusaoComVendas: false }
 
 export default usarMock.catalogo ? mock : real

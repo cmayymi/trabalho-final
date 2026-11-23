@@ -60,12 +60,12 @@
           </table>
         </div>
       </div>
-      <p v-if="catalogo.gerenciavel" class="col-12 col-xl-3 texto-suave small">A exclusão do catálogo não apaga vendas históricas associadas.</p>
+      <p v-if="catalogo.gerenciavel" class="col-12 col-xl-3 texto-suave small">{{ catalogo.bloqueiaExclusaoComVendas ? 'Produtos que já foram vendidos não podem ser excluídos, para preservar o histórico de vendas.' : 'A exclusão do catálogo não apaga vendas históricas associadas.' }}</p>
     </div>
 
     <ModalConfirmacao ref="modal" titulo="Excluir produto?" texto-confirmar="Excluir" perigo :ocupado="excluindo" @confirmar="excluir">
       <p class="mb-1"><strong>{{ produto.nome }}</strong> sairá do catálogo.</p>
-      <p class="texto-suave mb-0">A exclusão do catálogo não apaga vendas históricas associadas.</p>
+      <p class="texto-suave mb-0">{{ catalogo.bloqueiaExclusaoComVendas ? 'Se o produto já tiver sido vendido, a exclusão será recusada para preservar o histórico.' : 'A exclusão do catálogo não apaga vendas históricas associadas.' }}</p>
     </ModalConfirmacao>
   </template>
 </template>
