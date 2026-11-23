@@ -7,16 +7,19 @@ class CadastroIngrediente {
         if(!ingred) {
             return null;
         }
-        return new Ingrediente(ingred.id, ingred.nome, ingred.unidadeMedida, ingred.quantidadeEstoque);
+        return new Ingrediente(ingred.id, ingred.nome, ingred.unidadeMedida, ingred.quantidadeEstoque, ingred.estoqueMinimo, ingred.valorUltimaCompra, ingred.quantidadeUltimaCompra, ingred.dataUltimaCompra);
     }
+
     cadastrarIngrediente(ingrediente) {
-        const novoIngred = db.prepare('INSERT INTO Ingrediente (nome, unidadeMedida, quantidadeEstoque) VALUES (?, ?, ?)');
-        novoIngred.run(ingrediente.getNome(), ingrediente.getUM(), ingrediente.getQuantEstoque());
+        const novoIngred = db.prepare('INSERT INTO Ingrediente (nome, unidadeMedida, quantidadeEstoque, estoqueMinimo, valorUltimaCompra, quantidadeUltimaCompra, dataUltimaCompra) VALUES (?, ?, ?, ?, ?, ?, ?)');
+        novoIngred.run(ingrediente.getNome(), ingrediente.getUM(), ingrediente.getQuantEstoque(), ingrediente.getEstoqueMinimo(), ingrediente.getValorUltimaCompra(), ingrediente.getQuantUltimaCompra(), ingrediente.getDataUltimaCompra());
     }
+
     editarIngrediente(ingrediente) {
-        const atualiza = db.prepare('UPDATE Ingrediente SET nome = ?, unidadeMedida = ?, quantidadeEstoque = ? WHERE id = ?');
-        atualiza.run(ingrediente.getNome(), ingrediente.getUM(), ingrediente.getQuantEstoque(), ingrediente.getId());
+        const atualiza = db.prepare(`UPDATE Ingrediente SET nome = ?, unidadeMedida = ?, quantidadeEstoque = ?, estoqueMinimo = ?, valorUltimaCompra = ?, quantidadeUltimaCompra = ?, dataUltimaCompra = ? WHERE id = ?`);
+        atualiza.run(ingrediente.getNome(), ingrediente.getUM(), ingrediente.getQuantEstoque(), ingrediente.getEstoqueMinimo(), ingrediente.getValorUltimaCompra(), ingrediente.getQuantUltimaCompra(), ingrediente.getDataUltimaCompra(), ingrediente.getId());
     }
+
     excluirIngrediente(id) {
         if(!Number.isInteger(id) || id <= 0) {
             throw new Error('ERRO: ID inválido.');
@@ -33,6 +36,22 @@ class CadastroIngrediente {
         if(resultado.changes === 0) {                                       // se for zero, não tinha nenhum ingrediente la, pois a varredura nao encontrou nada
             throw new Error('ERRO: Ingrediente não encontrado.');
         }
+    }
+    listarTodos() {
+        const lista = db.prepare('SELECT * FROM Ingrediente').all();
+
+        return lista.map(ingred =>
+            new Ingrediente(
+                ingred.id,
+                ingred.nome,
+                ingred.unidadeMedida,
+                ingred.quantidadeEstoque,
+                ingred.estoqueMinimo,
+                ingred.valorUltimaCompra,
+                ingred.quantidadeUltimaCompra,
+                ingred.dataUltimaCompra
+            )
+        );
     }
 }
 
