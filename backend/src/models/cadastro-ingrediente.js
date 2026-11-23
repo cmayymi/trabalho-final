@@ -14,7 +14,7 @@ class CadastroIngrediente {
         const novoIngred = db.prepare('INSERT INTO Ingrediente (nome, unidadeMedida, quantidadeEstoque, estoqueMinimo, valorUltimaCompra, quantidadeUltimaCompra, dataUltimaCompra) VALUES (?, ?, ?, ?, ?, ?, ?)');
         novoIngred.run(ingrediente.getNome(), ingrediente.getUM(), ingrediente.getQuantEstoque(), ingrediente.getEstoqueMinimo(), ingrediente.getValorUltimaCompra(), ingrediente.getQuantUltimaCompra(), ingrediente.getDataUltimaCompra());
     }
-    
+
     editarIngrediente(ingrediente) {
         const atualiza = db.prepare(`UPDATE Ingrediente SET nome = ?, unidadeMedida = ?, quantidadeEstoque = ?, estoqueMinimo = ?, valorUltimaCompra = ?, quantidadeUltimaCompra = ?, dataUltimaCompra = ? WHERE id = ?`);
         atualiza.run(ingrediente.getNome(), ingrediente.getUM(), ingrediente.getQuantEstoque(), ingrediente.getEstoqueMinimo(), ingrediente.getValorUltimaCompra(), ingrediente.getQuantUltimaCompra(), ingrediente.getDataUltimaCompra(), ingrediente.getId());
