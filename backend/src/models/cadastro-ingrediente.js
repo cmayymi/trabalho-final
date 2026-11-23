@@ -2,6 +2,22 @@ const db = require('../../database/conexao');
 const Ingrediente = require('./ingrediente');
 
 class CadastroIngrediente {
+    listarTodos() {
+        const ingredientes = db.prepare('SELECT * FROM Ingrediente').all();
+
+        return ingredientes.map(ingred =>
+            new Ingrediente(
+                ingred.id,
+                ingred.nome,
+                ingred.unidadeMedida,
+                ingred.quantidadeEstoque,
+                ingred.estoqueMinimo,
+                ingred.valorUltimaCompra,
+                ingred.quantidadeUltimaCompra,
+                ingred.dataUltimaCompra
+            )
+        );
+    }
     buscarId(id) {
         const ingred = db.prepare('SELECT * FROM Ingrediente WHERE id = ?').get(id);
         if(!ingred) {
