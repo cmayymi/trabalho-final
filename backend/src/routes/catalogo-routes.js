@@ -30,6 +30,7 @@ function converterProdutoJSON(produto) {
         nome: produto.getNome(),
         descricao: produto.getDescricao(),
         preco: produto.getPreco(),
+        tipoVenda: produto.getTipoVenda(),
         ficha: {
             itens: ficha.obterItens().map(item => {
                 const ingrediente = item.getIngrediente();

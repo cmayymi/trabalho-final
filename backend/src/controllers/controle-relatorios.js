@@ -12,7 +12,7 @@ class ControleRelatorios {
     }
 
     // devolve { linhas: [...] } com venda, custo e lucro em CENTAVOS (inteiros)
-    // (decisao do grupo: relatorio devolve centavos; quem arredonda/formata eh o frontend)
+    // (relatorio devolve centavos; quem arredonda/formata eh o frontend)
     gerarRelatorioVendas(inicio, fim) {
         this.#validarPeriodo(inicio, fim);
 
