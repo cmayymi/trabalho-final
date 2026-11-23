@@ -7,11 +7,39 @@ CREATE TABLE IF NOT EXISTS Usuario (
     senhaHash TEXT NOT NULL
 );
 
--- teste da tabela
-CREATE TABLE IF NOT EXISTS produtos (
-    produtoID INTEGER PRIMARY KEY AUTOINCREMENT,
+-- ====== UC 9 =======
+CREATE TABLE IF NOT EXISTS Ingrediente (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
     nome TEXT NOT NULL,
-    preco_base INTEGER NOT NULL -- em centavos
+    unidadeMedida TEXT NOT NULL,
+    quantidadeEstoque REAL NOT NULL DEFAULT 0,
+    estoqueMinimo REAL NOT NULL DEFAULT 0,
+    valorUltimaCompra INTEGER NOT NULL DEFAULT 0,       -- centavos pagos na última compra
+    quantidadeUltimaCompra REAL NOT NULL DEFAULT 0,     -- na mesma unidade do ingrediente
+    dataUltimaCompra TEXT                               -- AAAA-MM-DD
+);
+
+CREATE TABLE IF NOT EXISTS FichaTecnica (
+    id INTEGER PRIMARY KEY AUTOINCREMENT
+);
+
+CREATE TABLE IF NOT EXISTS Produto (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    nome TEXT NOT NULL,
+    descricao TEXT,
+    preco INTEGER NOT NULL CHECK(preco >= 0),                -- 'unidade': preço de 1 unidade; 'peso': preço de 1 kg (centavos)
+    tipo_venda TEXT NOT NULL DEFAULT 'unidade' CHECK(tipo_venda IN ('unidade', 'peso')),
+    fichaId INTEGER NOT NULL UNIQUE,
+    FOREIGN KEY (fichaId) REFERENCES FichaTecnica(id)
+);
+
+CREATE TABLE IF NOT EXISTS ItemFicha (
+    fichaId INTEGER NOT NULL,                   -- diz a qual ficha o item pertence
+    ingredienteId INTEGER NOT NULL,             -- qual eh o ingrediente utilizado para aquele produto
+    quantidade REAL NOT NULL,                   -- quantidade do ingrediente que eh utilizada naquele produto (pode variar de receita para receita)
+    PRIMARY KEY (fichaId, ingredienteId),
+    FOREIGN KEY (fichaId) REFERENCES FichaTecnica(id) ON DELETE CASCADE,
+    FOREIGN KEY (ingredienteId) REFERENCES Ingrediente(id)
 );
 
 CREATE TABLE IF NOT EXISTS pedidos (
@@ -28,14 +56,14 @@ CREATE TABLE IF NOT EXISTS pedidos (
 
 CREATE TABLE IF NOT EXISTS itens_pedido (
     itens_pedidoID INTEGER PRIMARY KEY AUTOINCREMENT,
+    id INTEGER NOT NULL,
     pedidosID INTEGER NOT NULL,
-    produtoID INTEGER NOT NULL,
     quantidade INTEGER NOT NULL CHECK(quantidade > 0),
     peso INTEGER NOT NULL, -- unidade em gramas
     preco_unitario INTEGER NOT NULL CHECK(preco_unitario >= 0), -- em centavos
     custo_unitario INTEGER NOT NULL CHECK(custo_unitario >= 0), -- em centavos
     FOREIGN KEY (pedidosID) REFERENCES pedidos(pedidosID),
-    FOREIGN KEY (produtoID) REFERENCES produtos(produtoID)
+    FOREIGN KEY (id) REFERENCES Produto(id)
 );
 
 CREATE TABLE IF NOT EXISTS historico_pedidos (
@@ -50,33 +78,31 @@ CREATE TABLE IF NOT EXISTS historico_pedidos (
 CREATE INDEX IF NOT EXISTS idx_pedidos_situacao_data ON pedidos(situacao, data_pedido);
 CREATE INDEX IF NOT EXISTS idx_itens_pedido_pedidosID ON itens_pedido(pedidosID);
 
--- ====== UC 9 =======
-CREATE TABLE IF NOT EXISTS Ingrediente (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    nome TEXT NOT NULL,
-    unidadeMedida TEXT NOT NULL,
-    quantidadeEstoque REAL NOT NULL DEFAULT 0
+-- ====== RF09 - RELATORIO DE LUCRO (historico de apuracoes) =======
+-- tudo em centavos (inteiros), igual ao resto do sistema; margem em % (REAL)
+CREATE TABLE IF NOT EXISTS apuracao_lucro (
+    apuracaoID INTEGER PRIMARY KEY AUTOINCREMENT,
+    data_inicio TEXT NOT NULL,              -- AAAA-MM-DD
+    data_fim TEXT NOT NULL,                 -- AAAA-MM-DD
+    faturamento INTEGER NOT NULL,
+    custo_total INTEGER NOT NULL,
+    lucro INTEGER NOT NULL,
+    margem REAL NOT NULL,                   -- lucro / faturamento * 100
+    data_apuracao TEXT NOT NULL             -- quando foi gerada (AAAA-MM-DD)
 );
 
-CREATE TABLE IF NOT EXISTS FichaTecnica (
-    id INTEGER PRIMARY KEY AUTOINCREMENT
+-- memoria de calculo: 1 linha por produto da apuracao (foto do que foi exibido)
+CREATE TABLE IF NOT EXISTS apuracao_lucro_produto (
+    apuracao_produtoID INTEGER PRIMARY KEY AUTOINCREMENT,
+    apuracaoID INTEGER NOT NULL,
+    produto_id INTEGER,                     -- sem FK de proposito: o produto pode ser removido depois
+    produto_nome TEXT NOT NULL,             -- guarda o nome da epoca
+    quantidade INTEGER NOT NULL,
+    faturamento INTEGER NOT NULL,
+    custo INTEGER NOT NULL,
+    lucro INTEGER NOT NULL,
+    margem REAL NOT NULL,
+    FOREIGN KEY (apuracaoID) REFERENCES apuracao_lucro(apuracaoID) ON DELETE CASCADE
 );
 
-CREATE TABLE IF NOT EXISTS Produto (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    nome TEXT NOT NULL,
-    descricao TEXT,
-    preco INTEGER NOT NULL CHECK(preco >= 0),
-    tipo_venda TEXT NOT NULL DEFAULT 'unidade' CHECK(tipo_venda IN('unidade', 'peso')),
-    fichaId INTEGER NOT NULL UNIQUE,                        -- todo produto tem uma unica ficha, ou seja, nao pode haver uma ficha compartilhada por dois ou mais produtos
-    FOREIGN KEY (fichaId) REFERENCES FichaTecnica(id)       -- guarda a associacao do diagrama com Produto -> FichaTecnica, armazenando a chave 
-);
-
-CREATE TABLE IF NOT EXISTS ItemFicha (
-    fichaId INTEGER NOT NULL,                   -- diz a qual ficha o item pertence
-    ingredienteId INTEGER NOT NULL,             -- qual eh o ingrediente utilizado para aquele produto
-    quantidade REAL NOT NULL,                   -- quantidade do ingrediente que eh utilizada naquele produto (pode variar de receita para receita)
-    PRIMARY KEY (fichaId, ingredienteId),
-    FOREIGN KEY (fichaId) REFERENCES FichaTecnica(id) ON DELETE CASCADE,
-    FOREIGN KEY (ingredienteId) REFERENCES Ingrediente(id)
-);
+CREATE INDEX IF NOT EXISTS idx_apuracao_produto_apuracaoID ON apuracao_lucro_produto(apuracaoID);

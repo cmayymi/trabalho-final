@@ -8,12 +8,14 @@
 
     <div class="px-2 pt-3">
       <h2 class="nome">{{ produto.nome }}</h2>
-      <p class="texto-suave mb-3">{{ produto.categoria }} &nbsp;•&nbsp; {{ moedaCurta(produto.precoBase) }}</p>
+      <p class="texto-suave mb-3">
+        <template v-if="produto.categoria">{{ produto.categoria }} &nbsp;•&nbsp; </template>{{ precoComUnidade(produto) }}
+      </p>
       <EtiquetaStatus :status="produto.disponibilidade" />
 
       <div class="d-flex align-items-center gap-3 mt-3">
         <button class="acao" type="button" @click="$emit('selecionar', produto.id)">Ver detalhes</button>
-        <router-link class="acao" :to="{ name: 'produto-editar', params: { id: produto.id } }">Editar</router-link>
+        <router-link class="acao" :to="gerenciavel ? { name: 'produto-editar', params: { id: produto.id } } : emDesenvolvimento('Edição de produtos')">Editar</router-link>
         <div class="dropdown">
           <button class="acao" type="button" data-bs-toggle="dropdown" aria-expanded="false" :aria-label="`Mais ações para ${produto.nome}`">
             <i class="bi bi-three-dots" aria-hidden="true"></i>
@@ -22,7 +24,8 @@
             <li>
               <router-link class="dropdown-item" :to="{ name: 'venda-nova', query: { produto: produto.id } }">Registrar venda</router-link>
             </li>
-            <li><button class="dropdown-item text-danger" type="button" @click="$emit('excluir', produto)">Excluir</button></li>
+            <li v-if="gerenciavel"><button class="dropdown-item text-danger" type="button" @click="$emit('excluir', produto)">Excluir</button></li>
+            <li v-else><router-link class="dropdown-item" :to="emDesenvolvimento('Exclusão de produtos')">Excluir</router-link></li>
           </ul>
         </div>
       </div>
@@ -32,9 +35,12 @@
 
 <script setup>
 import EtiquetaStatus from '@/components/comum/EtiquetaStatus.vue'
-import { moedaCurta } from '@/utils/formatadores'
+import { emDesenvolvimento, precoComUnidade } from '@/utils/formatadores'
 
-defineProps({ produto: { type: Object, required: true } })
+defineProps({
+  produto: { type: Object, required: true },
+  gerenciavel: { type: Boolean, default: true }
+})
 defineEmits(['selecionar', 'excluir'])
 </script>
 

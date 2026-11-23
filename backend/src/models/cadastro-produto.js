@@ -84,6 +84,15 @@ class CadastroProduto {
         if(!registro) {
             throw new Error('ERRO: Produto não encontrado!');
         }
+
+        const venda = db.prepare(
+            'SELECT 1 FROM itens_pedido WHERE id = ? LIMIT 1'
+        ).get(id);
+
+        if(venda) {
+            throw new Error('ERRO: Produto possui vendas e não pode ser excluído.');
+        }
+
         const fichaId = registro.fichaId;
 
         const delecao = db.transaction(() => {

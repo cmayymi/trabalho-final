@@ -37,22 +37,6 @@ class CadastroIngrediente {
             throw new Error('ERRO: Ingrediente não encontrado.');
         }
     }
-    listarTodos() {
-        const lista = db.prepare('SELECT * FROM Ingrediente').all();
-
-        return lista.map(ingred =>
-            new Ingrediente(
-                ingred.id,
-                ingred.nome,
-                ingred.unidadeMedida,
-                ingred.quantidadeEstoque,
-                ingred.estoqueMinimo,
-                ingred.valorUltimaCompra,
-                ingred.quantidadeUltimaCompra,
-                ingred.dataUltimaCompra
-            )
-        );
-    }
 }
 
 module.exports = CadastroIngrediente;

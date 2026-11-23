@@ -29,8 +29,10 @@ const routes = [
 
       { path: 'relatorios', name: 'relatorios', component: () => import('@/views/relatorios/RelatoriosView.vue'), meta: { titulo: 'Relatórios' } },
       { path: 'relatorios/vendas', name: 'relatorio-vendas', component: () => import('@/views/relatorios/RelatorioVendasView.vue'), meta: { titulo: 'Relatório de vendas' } },
+      { path: 'relatorios/estoque', name: 'relatorio-estoque', component: () => import('@/views/relatorios/RelatorioEstoqueView.vue'), meta: { titulo: 'Relatório de estoque' } },
+      { path: 'relatorios/lucro', name: 'relatorio-lucro', component: () => import('@/views/relatorios/RelatorioLucroView.vue'), meta: { titulo: 'Relatório de lucro' } },
 
-      { path: 'em-breve', name: 'em-breve', component: () => import('@/views/EmBreveView.vue'), meta: { titulo: 'Em breve' } },
+      { path: 'em-breve', name: 'em-breve', component: () => import('@/views/EmBreveView.vue'), meta: { titulo: 'Em desenvolvimento' } },
       { path: ':caminho(.*)*', name: 'nao-encontrado', component: () => import('@/views/NaoEncontradoView.vue'), meta: { titulo: 'Não encontrado' } }
     ]
   }

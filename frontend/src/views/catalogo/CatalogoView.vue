@@ -6,17 +6,19 @@
       <label class="form-label" for="busca-produto">Buscar</label>
       <input id="busca-produto" :value="busca" type="search" class="form-control" placeholder="Buscar por nome" @input="buscarPorNome($event.target.value)" />
     </div>
-    <div v-for="filtro in listaFiltros" :key="filtro.chave" class="col-6 col-md-4 col-xl-auto filtro">
-      <select v-model="filtros[filtro.chave]" class="form-select filtro-forte" :aria-label="filtro.rotulo">
-        <option value="">{{ filtro.rotulo }}</option>
-        <option v-for="opcao in filtro.opcoes" :key="opcao" :value="opcao">{{ opcao }}</option>
-      </select>
-    </div>
+    <template v-if="catalogo.filtrosAvancados">
+      <div v-for="filtro in listaFiltros" :key="filtro.chave" class="col-6 col-md-4 col-xl-auto filtro">
+        <select v-model="filtros[filtro.chave]" class="form-select filtro-forte" :aria-label="filtro.rotulo">
+          <option value="">{{ filtro.rotulo }}</option>
+          <option v-for="opcao in filtro.opcoes" :key="opcao" :value="opcao">{{ opcao }}</option>
+        </select>
+      </div>
+    </template>
     <div class="col-6 col-md-6 col-xl-auto">
-      <router-link class="btn btn-ambar w-100 botao-filtro" :to="{ name: 'em-breve', query: { funcionalidade: 'Gerenciamento de preços' } }">Gerenciar preços</router-link>
+      <router-link class="btn btn-ambar w-100 botao-filtro" :to="emDesenvolvimento('Gerenciamento de preços')">Gerenciar preços</router-link>
     </div>
     <div class="col-12 col-md-6 col-xl-auto">
-      <router-link class="btn btn-ambar w-100 botao-filtro" :to="{ name: 'produto-novo' }">+ Novo produto</router-link>
+      <router-link class="btn btn-ambar w-100 botao-filtro" :to="destinoNovoProduto">+ Novo produto</router-link>
     </div>
   </section>
 
@@ -24,8 +26,8 @@
   <EstadoPagina v-else-if="erro" tipo="erro" icone="bi-cloud-slash" titulo="Não foi possível carregar o catálogo" :texto="erro">
     <button class="btn btn-branco" type="button" @click="carregar">Tentar novamente</button>
   </EstadoPagina>
-  <EstadoPagina v-else-if="!produtos.length" titulo="Nenhum produto cadastrado" texto="Cadastre o primeiro produto para começar a vender.">
-    <router-link class="btn btn-ambar" :to="{ name: 'produto-novo' }">+ Novo produto</router-link>
+  <EstadoPagina v-else-if="!produtos.length" titulo="Nenhum produto cadastrado" texto="Ainda não há produtos no catálogo.">
+    <router-link class="btn btn-ambar" :to="destinoNovoProduto">+ Novo produto</router-link>
   </EstadoPagina>
   <EstadoPagina v-else-if="!filtrados.length" icone="bi-search" titulo="Nenhum produto encontrado" texto="Altere ou remova os filtros para ver outros produtos.">
     <button class="btn btn-branco" type="button" @click="limparFiltros">Limpar filtros</button>
@@ -33,7 +35,7 @@
 
   <section v-else class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-4" aria-label="Produtos">
     <div v-for="produto in filtrados" :key="produto.id" class="col">
-      <CartaoProduto :produto="produto" @selecionar="selecionarProduto" @excluir="pedirExclusao" />
+      <CartaoProduto :produto="produto" :gerenciavel="catalogo.gerenciavel" @selecionar="selecionarProduto" @excluir="pedirExclusao" />
     </div>
   </section>
 
@@ -52,10 +54,13 @@ import ModalConfirmacao from '@/components/comum/ModalConfirmacao.vue'
 import CartaoProduto from '@/components/catalogo/CartaoProduto.vue'
 import catalogo from '@/services/catalogo'
 import { avisar } from '@/composables/avisos'
-import { normalizar } from '@/utils/formatadores'
+import { emDesenvolvimento, normalizar } from '@/utils/formatadores'
 
 // <<boundary>> TelaCatalogo (UC9 - Consultar Catálogo)
 const router = useRouter()
+
+// Cadastro de produtos (RF11) ainda não existe no backend.
+const destinoNovoProduto = catalogo.gerenciavel ? { name: 'produto-novo' } : emDesenvolvimento('Cadastro de produtos')
 
 const produtos = ref([])
 const busca = ref('')

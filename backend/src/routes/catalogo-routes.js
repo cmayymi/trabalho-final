@@ -367,6 +367,12 @@ router.delete('/produtos/:id', (req, res) => {
             return res.status(404).json({ erro: 'Produto não encontrado.' });
         }
 
+        if (erro.message === 'ERRO: Produto possui vendas e não pode ser excluído.') {
+            return res.status(409).json({
+                erro: 'Produto possui vendas e não pode ser excluído.'
+            });
+        }
+
         console.error(erro);
         return res.status(500).json({ erro: 'Erro interno do servidor.' });
     }
