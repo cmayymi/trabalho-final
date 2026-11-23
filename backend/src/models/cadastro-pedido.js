@@ -7,7 +7,7 @@ class CadastroPedido {
     // grava o pedido e todos os seus itens de uma vez só (tudo ou nada)
     // se qualquer insert falhar, a transação desfaz tudo e o erro é propagado
     // devolve o ID do pedido gerado
-    salvarPedidoCompleto(pedido) {
+    salvarPedidoCompleto(pedido, ajustesEstoque = {}) {
         const salvar = db.transaction(() => {
             const pedidosID = this.#inserirPedido(pedido);
             pedido.getItens().forEach((item) => this.#inserirItem(pedidosID, item));
@@ -96,7 +96,7 @@ class CadastroPedido {
 
     // exclusao logica, ou seja, n faz delete, so muda a situacao pra excluido 
     // devolve true se excluiu, false se o pedido não existia/já estava excluído
-    marcarComoExcluido(pedidosID) {
+    marcarComoExcluido(pedidosID, ajustesEstoque = {}) {
         const excluir = db.transaction(() => {
             // busca o pedido ativo
             const pedidoAtivo = this.buscarPorId(pedidosID);
@@ -111,6 +111,7 @@ class CadastroPedido {
 
             // exclusao logica
             db.prepare(`UPDATE pedidos SET situacao = 'excluido' WHERE pedidosID = ?`).run(pedidosID);
+            this.#aplicarAjusteEstoque(ajustesEstoque); 
 
             return true;
         });
