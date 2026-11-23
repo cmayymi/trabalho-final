@@ -18,12 +18,12 @@ Interface web do Sistema Betina Cozinha (SBC), feita com **Vue.js 3, Vue CLI, We
 | Editar pedido, marcar como pago e excluir pedido | RF10 | `VendaFormView.vue`, `VendasView.vue`, `VendaDetalheView.vue` | `PUT`, `DELETE /api/pedidos/:id` |
 | Relatório de estoque e alertas de estoque crítico | RF01, RF04 | `RelatorioEstoqueView.vue`, `InicioView.vue` | `GET /api/relatorios/estoque` |
 | Relatório de lucro e histórico de apurações | RF09, RF08 | `RelatorioLucroView.vue` | `POST /api/relatorios/lucro`, `GET /api/relatorios/lucro/historico` |
+| Gerenciar Produto (extensão do UC9): cadastrar, editar e excluir produto com a ficha técnica | RF03 | `ProdutoFormView.vue`, `CatalogoView.vue`, `ProdutoDetalheView.vue` | `GET /api/ingredientes`, `POST /api/produtos`, `PUT` e `DELETE /api/produtos/:id` |
 
 ## Em desenvolvimento
 
 Estas telas existem no protótipo, mas o backend ainda não tem as rotas. No site, elas abrem uma página "Em desenvolvimento":
 
-- Cadastrar, editar e excluir produto (RF11)
 - Gerenciar preços (RF07)
 - Controle de estoque e movimentações (RF04, RF12)
 - Custos e margens (tela própria do RF08)
@@ -85,7 +85,7 @@ O proxy envia `/api` para `http://localhost:3000`. Para outro endereço, defina 
 
 O backend guarda os valores em centavos e o peso em gramas. A pasta `src/services/` converte para reais e quilos:
 
-- `catalogo.js`: preço do produto e ficha técnica. Produtos com `tipoVenda` igual a `peso` (como bolos) têm preço e ficha por kg; os demais, por unidade.
+- `catalogo.js`: preço do produto e ficha técnica. No cadastro, o formulário envia só os campos que o banco tem (nome, descrição, preço em centavos, `tipoVenda` e os ingredientes da ficha); categoria, massa, cobertura, peso padrão e foto aparecem só no modo demonstração. Produtos com `tipoVenda` igual a `peso` (como bolos) têm preço e ficha por kg; os demais, por unidade.
 - `vendas.js`: cada item é enviado com o `id` do produto, a quantidade e, para produtos por peso, o peso de cada item em gramas.
 - `relatorios.js`: valores de venda, custo, lucro e custo médio dos insumos.
 
